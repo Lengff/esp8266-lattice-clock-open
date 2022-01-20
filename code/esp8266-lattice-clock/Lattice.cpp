@@ -264,6 +264,37 @@ void Lattice::offsetBuff(uint8_t index, int8_t offset)
   }
 }
 
+void Lattice::offsetData(uint8_t index, int8_t offset)
+{
+  uint8_t os = abs(offset);
+  if (offset < 0)
+  {
+    // 向左移动显示为
+    uint8_t lastindex = (index == 3) ? 0 : (index + 1);
+    uint8_t lastoffset = (0xff >> os) << os;
+    uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - os);
+    for (int i = 0; i < 8; i++)
+    {
+      data[lastindex][i] = (data[lastindex][i] & lastoffset) +
+                           ((data[index][i] & nextoffset) >> (8 - os));
+      data[index][i] <<= os;
+    }
+  }
+  else
+  {
+    // 向右移动显示位
+    uint8_t lastindex = (index == 0) ? 3 : index - 1;
+    uint8_t lastoffset = (0xff >> os);
+    uint8_t nextoffset = (lastoffset ^ 0xff) >> (8 - os);
+    for (int i = 0; i < 8; i++)
+    {
+      data[lastindex][i] = (data[lastindex][i] & lastoffset) +
+                           ((data[index][i] & (nextoffset)) << (8 - os));
+      data[index][i] >>= os;
+    }
+  }
+}
+
 void Lattice::showLongIcon(uint8_t index)
 {
   switch (index)
@@ -538,6 +569,87 @@ void Lattice::showTime2(uint8_t *arr)
   {
     downMoveBuff(mfs);
     delay(80);
+  }
+}
+
+void Lattice::showTime3(uint8_t *arr)
+{
+
+  uint8_t mfs[4] = {0x0, 0x0, 0x0, 0x0};
+  // 这里判断哪些数字要改变,哪些数字不要改变
+  for (int k = 0; k < columnLength; k++)
+  {
+    if (k == 0 || (k == 1 && arr[0] == 0) ||
+        (k == 2 && (arr[1] == 0 && arr[0] == 0)))
+    {
+      mfs[k] = (arr[k] % 10 == 0) ? 0xff : 0xf;
+    }
+  }
+
+  if (isReset)
+  {
+    isReset = false;
+    mfs[0] = 0xff;
+    mfs[1] = 0xff;
+    mfs[2] = 0xff;
+    mfs[3] = 0xff;
+  }
+  // 这里保留不要改变的数字
+  for (int i = 0; i < 8; i++)
+  {
+    // 这里为啥写三行不写循环,因为我觉得循环也是三行,这样也是三行就没必要计较了
+    buff[0][i] = mfs[0] == 0x0 ? buff[0][i] : mfs[0] == 0xf ? (buff[0][i] & 0xf0)
+                                                            : 0x0;
+    buff[1][i] = mfs[1] == 0x0 ? buff[1][i] : mfs[1] == 0xf ? (buff[1][i] & 0xf0)
+                                                            : 0x0;
+    buff[2][i] = mfs[2] == 0x0 ? buff[2][i] : mfs[2] == 0xf ? (buff[2][i] & 0xf0)
+                                                            : 0x0;
+    buff[3][i] = 0x0;
+  }
+
+  for (int i = 0; i < 16; i++)
+  {
+
+    // 判断有几个数字发生了改变
+    for (int j = 0; j < 3; j++)
+    {
+      if (mfs[j] == 0x0)
+      {
+        Serial.println("debug: mfs[j] is zero");
+        // 如果说没有改变则忽略
+        break;
+      }
+      uint8_t gw = arr[j] % 10, sw = arr[j] / 10;
+      uint8_t geweibuff = number_font_animations[gw][i], shiweibuff = number_font_animations[sw][i];
+      if (geweibuff != 0x0)
+      {
+        buff[j][((geweibuff >> 4) & 0xf)] += ((0x80 >> (geweibuff & 0xf)) >> 4);
+      }
+      if (shiweibuff != 0x0 && mfs[j] == 0xff)
+      {
+        buff[j][((shiweibuff >> 4) & 0xf)] += ((0x80 >> (shiweibuff & 0xf)));
+      }
+    }
+
+    for (int i = 0; i < columnLength; i++)
+    {
+      for (int j = 0; j < rowLength; j++)
+      {
+        data[i][j] = buff[i][j];
+      }
+    }
+
+    offsetData(2, (-1 * 6));
+    offsetData(1, (-1 * 4));
+    offsetData(0, (-1 * 2));
+
+    // 显示点
+    data[2][2] = (data[2][2] & ((0x80 >> 2) ^ 0xff)) + (0x80 >> 2);
+    data[2][4] = (data[2][4] & ((0x80 >> 2) ^ 0xff)) + (0x80 >> 2);
+    data[1][2] = (data[1][2] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
+    data[1][4] = (data[1][4] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
+    refreshLed();
+    delay(50);
   }
 }
 

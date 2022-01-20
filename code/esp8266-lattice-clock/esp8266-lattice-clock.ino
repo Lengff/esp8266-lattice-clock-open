@@ -83,12 +83,21 @@ void setUserData(uint8_t *data)
 void showTime(uint8_t showmode)
 {
   Times times = datetimes.getTimes();
-  if (showmode % 2 == 0)
+  if (times.s == powerFlag)
   {
-    if (times.s == powerFlag) // 如果秒数没有发生改变，则不更新时间显示
-    {
-      return; // 如果秒钟数没有改变,则不执行方法
-    }
+    return; // 如果秒钟数没有改变,则不执行方法
+  }
+  if (showmode == 0)
+  {
+
+    powerFlag = times.s;
+    displayData[0] = times.s;
+    displayData[1] = times.m;
+    displayData[2] = times.h;
+    lattice.showTime3(displayData);
+  }
+  else if (showmode == 1)
+  {
     powerFlag = times.s;
     displayData[0] = times.s;
     displayData[1] = times.m;
@@ -97,10 +106,6 @@ void showTime(uint8_t showmode)
   }
   else
   {
-    if (times.s == powerFlag)
-    {
-      return; // 如果秒钟数没有改变,则不执行方法
-    }
     if (times.s == 0 || powerFlag == -1)
     {
       displayData[0] = times.m % 10;

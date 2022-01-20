@@ -7,7 +7,6 @@
 #include "EEPROMTool.h"
 
 OneButton btnA = OneButton(D8, false, false);
-OneButton btnB = OneButton(D3, false, false);
 
 Lattice lattice = Lattice(false);
 
@@ -31,7 +30,7 @@ enum ModeEnum
   RESET = 99
 };
 // 每个功能对应多少种模式
-uint8_t modePower[5] = {2, 3, 1, 1, 5};
+uint8_t modePower[5] = {3, 3, 1, 1, 5};
 // 默认的功能模式
 uint8_t powers[5] = {0, 0, 0, 0, 0};
 // 0:显示时间，1:显示日日期，2:显示温度，3：显示倒计时，4：显示自定义内容
