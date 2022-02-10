@@ -3,6 +3,7 @@
 
 #include <DS3231.h>
 #include <Wire.h>
+#include "EEPROMTool.h"
 
 struct Times
 {
@@ -65,6 +66,21 @@ public:
    * 根据datetime设置时间
    */
   void setDateTimes(long timestamp);
+
+  /**
+   * 获取时间戳信息
+   */
+  long getTimestamp();
+
+  /**
+   * 获取倒计时的时间戳
+   */
+  long getCountdownTimestamp();
+
+  /**
+   * 保存倒计时的时间戳
+   */
+  void saveCountdownTimestamp(long timestamp);
 };
 
 #endif

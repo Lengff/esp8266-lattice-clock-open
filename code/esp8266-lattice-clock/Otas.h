@@ -8,7 +8,7 @@
 /**
  * OTA 固件版本号
  */
-const uint8_t version = 4;
+const uint8_t version = 5;
 
 void update_started()
 {

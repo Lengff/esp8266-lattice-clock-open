@@ -9,8 +9,10 @@
 OneButton btnA = OneButton(D8, false, false);
 
 Lattice lattice = Lattice(false);
+// 点阵显示数,每个点阵应该显示那些数据
+unsigned char displayData[4] = {0x00, 0x00, 0x00, 0xff};
 
-const int powerLength = 4;
+const int powerLength = 5;
 
 enum ModeEnum
 {
@@ -24,15 +26,17 @@ enum ModeEnum
   BILIFANS = 3,
   // 显示用户自定义数据
   CUSTOM = 4,
+  // 显示倒计时
+  COUNTDOWN = 5,
   // NTP更新时间
   RESETTIME = 98,
   // 系统重置
   RESET = 99
 };
 // 每个功能对应多少种模式
-uint8_t modePower[5] = {3, 3, 1, 1, 5};
+uint8_t modePower[6] = {3, 3, 1, 1, 5, 1};
 // 默认的功能模式
-uint8_t powers[5] = {0, 0, 0, 0, 0};
+uint8_t powers[6] = {0, 0, 0, 0, 0, 1};
 // 0:显示时间，1:显示日日期，2:显示温度，3：显示倒计时，4：显示自定义内容
 uint8_t power = 0;
 // 是否是编辑模式(此功能没开发完)
@@ -40,7 +44,7 @@ bool isedit = false;
 // 记录按键按下时间
 uint32_t clicktime = 0, isadd = 0;
 // 功能flag
-long powerFlag = 0;
+long powerFlag = 0, powerFlag2 = 0;
 
 /**
    初始化状态
@@ -53,6 +57,15 @@ void initStatus()
     powerFlag = -1;
     return;
   }
+  else if (power == COUNTDOWN)
+  {
+
+    displayData[0] = 0;
+    displayData[1] = 1;
+    displayData[2] = 2;
+    powerFlag2 = 1; // 这里一定是到大于0的,后续会根据这个值是否为0来判断逻辑
+  }
+
   powerFlag = -1;
   lattice.reset();
 }

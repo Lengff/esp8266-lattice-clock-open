@@ -18,9 +18,6 @@ Wifis wifis;
 Udps udps;
 DateTimes datetimes = DateTimes();
 
-// 点阵显示数,每个点阵应该显示那些数据
-unsigned char displayData[4] = {0x00, 0x00, 0x00, 0xff};
-
 bool updateFansIf = false;
 
 void updateBiliFstatus() { updateFansIf = true; }
@@ -40,6 +37,21 @@ void subBili(uint8_t *data)
   httptool.saveBuid(uid);
   // 切换显示模式为bilibili显示
   power = BILIFANS;
+  initStatus();
+}
+
+void setCountdown(uint8_t *data)
+{
+  // 先将uint_8转成 long
+  long timestamp = 0;
+  for (int i = 0; i < 5; i++)
+  {
+    timestamp += data[i] << (i * 8);
+  }
+  // 将倒计时时间戳保存起来
+  datetimes.saveCountdownTimestamp(timestamp);
+  // 切换显示模式为倒计时显示
+  power = COUNTDOWN;
   initStatus();
 }
 
@@ -89,7 +101,6 @@ void showTime(uint8_t showmode)
   }
   if (showmode == 0)
   {
-
     powerFlag = times.s;
     displayData[0] = times.s;
     displayData[1] = times.m;
@@ -123,6 +134,66 @@ void showTime(uint8_t showmode)
     {
       lattice.reversalUD(3);
     }
+  }
+}
+
+/**
+ * 显示倒计时
+ */
+void showCountDown()
+{
+  bool showmode = true, minutechange = false;
+  long countdown = datetimes.getCountdownTimestamp();
+  long timestamp = datetimes.getTimestamp() - 8 * 3600;
+  if (countdown - timestamp == powerFlag2 || powerFlag2 <= 0)
+  {
+    // 时间没有发生改变,则跳过
+    return;
+  }
+  // 倒计时时间戳 - 当前时间戳时间小于一天则 按 时分秒 来进行倒计时
+  if ((countdown - timestamp) < (24 * 3600))
+  {
+    showmode = false;
+    minutechange = true;
+    // 倒计时小于一天,则使用时分秒的显示模式
+    if ((countdown - timestamp) == powerFlag2)
+    {
+      // 这里表示秒钟数没有发生改变
+      return;
+    }
+    if (((countdown - timestamp) / 3600) != (powerFlag2 / 3600))
+    {
+      // 倒计时时钟发生改变
+      lattice.reset();
+      displayData[0] = 0;
+      displayData[1] = 1;
+      displayData[2] = 2;
+    }
+  }
+  else
+  {
+    showmode = true;
+    // 这里判断天数是否发生改变,如果天数发生改变则需要重置一下显示
+    if (((countdown - timestamp) / 3600 / 24) != (powerFlag2 / 3600 / 24))
+    {
+      lattice.reset();
+      // 倒计时日发生改变
+      displayData[0] = 0;
+      displayData[1] = 1;
+      displayData[2] = 2;
+    }
+    // 这里判断分钟数是否发生改变,如果分钟数发生改变,则需要刷新显示
+    if (((countdown - timestamp) / 60) != (powerFlag2 / 60))
+    {
+      // 这里表示分钟数值发生改变
+      minutechange = true;
+    }
+  }
+  powerFlag2 = (countdown - timestamp) < 1 ? 0 : (countdown - timestamp);
+  lattice.showCountDownTime(powerFlag2, displayData, showmode, minutechange);
+  for (int i = 0; i < 3; i++)
+  {
+    displayData[i] = displayData[i] == 6 ? 1 : ++displayData[i];
   }
 }
 
@@ -221,6 +292,7 @@ void showBiliFans()
 {
   if (updateFansIf) // 判断是否需要更新bilibili粉丝数量
   {
+    Serial.println(datetimes.getTimestamp());
     httptool.bilibiliFans(); // 每五秒获取一次bilibili粉丝信息
     updateFansIf = false;    // 重置状态
   }
@@ -329,6 +401,9 @@ void handleUdpData()
   case 9:
     updateOta((int)udpdata.data[0]); // OTA 升级
     break;
+  case 10:
+    setCountdown(udpdata.data); // 设置倒计时
+    break;
   default:
     break;
   }
@@ -357,6 +432,9 @@ void handlePower()
       break;
     case CUSTOM:
       showUserData(powers[power]); // 显示用户自定义的数据
+      break;
+    case COUNTDOWN:
+      showCountDown(); // 显示倒计时
       break;
     case RESET:
       resetsystem(); // 重置系统

@@ -196,21 +196,51 @@ void Lattice::progressBar(uint8_t offset)
   }
 }
 
-unsigned char *Lattice::getNumData(uint8_t number)
+/**
+ * 向下移动缓冲数据
+ */
+void Lattice::upOrDownMove(uint8_t index, uint8_t region, bool direction)
+{
+  if (direction)
+  {
+    // 向上移动
+    uint8_t temp = data[index][0];
+    for (int k = 0; k < 8; k++)
+    {
+      data[index][k] = (data[index][k] & (region ^ 0xff)) + (data[index][k + 1] & region);
+    }
+    data[index][7] = (data[index][7] & (region ^ 0xff)) + (temp & region);
+  }
+  else
+  {
+    // 向下移动
+    uint8_t temp = data[index][7];
+    for (int k = 7; k > 0; k--)
+    {
+      data[index][k] = (data[index][k] & (region ^ 0xff)) + (data[index][k - 1] & region);
+    }
+    data[index][0] = (data[index][0] & (region ^ 0xff)) + (temp & region);
+  }
+}
+
+unsigned char *Lattice::getNumData(uint8_t number, bool showzero)
 {
   if (number > 99)
   {
     // 超过最大值,返回99
-    return getNumData((uint8_t)99);
+    return getNumData(99, showzero);
   }
   // 分别获取个位数字 和 十位数字
+  // const unsigned char *ten = (number / 10) < 1 && showzero ? number_font_small[10] : number_font_small[(number / 10)],  *one = (number % 10) == 0 && showzero ? number_font_small[10] : number_font_small[number % 10];
+
   const unsigned char *ten = number_font_small[(number / 10)],
-                      *one = number_font_small[number % 10];
+                      *one = (number % 10) == 0 && showzero ? number_font_small[10] : number_font_small[number % 10];
+
   unsigned char *arr = new uint8_t[rowLength];
   for (int i = 0; i < rowLength; i++)
   {
     // 将个位数左移，再加上十位数得到完整数字显示
-    arr[i] = ten[i] + ((one[i] & 0xE0) >> 4);
+    arr[i] = ten[i] + ((one[i] & 0xF0) >> 4);
   }
   return arr;
 }
@@ -321,7 +351,7 @@ void Lattice::showLongIcon(uint8_t index)
 
 void Lattice::showNum(uint8_t index, int nums)
 {
-  unsigned char *tmp = getNumData(nums);
+  unsigned char *tmp = getNumData(nums, false);
   for (int i = 0; i < rowLength; i++)
   {
     data[index][i] = tmp[i];
@@ -466,7 +496,7 @@ void Lattice::showTime(uint8_t *arr)
   for (int k = 0; k < columnLength; k++)
   {
     // 得到新的要显示的数字
-    unsigned char *tmp = getNumData(arr[k]);
+    unsigned char *tmp = getNumData(arr[k], false);
     for (int x = 0; x < 8; x++)
     {
       buff[k][x] = tmp[x];
@@ -653,6 +683,101 @@ void Lattice::showTime3(uint8_t *arr)
   }
 }
 
+void Lattice::showCountDownTime(long remain, uint8_t *arr, bool showmode, bool minutechange)
+{
+  uint8_t mfs[4] = {0x0, 0x0, 0x0, 0x0};
+  uint8_t d, h, m;
+  if (showmode)
+  { // 判断显示模式
+    // 日 时 分 显示方式
+    d = remain / 3600 / 24;
+    h = (remain - d * 24 * 3600) / 3600;
+    m = (remain - (d * 24 * 3600) - (h * 3600)) / 60;
+  }
+  else
+  {
+    // 时 分 秒 显示方式
+    d = remain / 3600;
+    h = (remain - (d * 3600)) / 60;
+    m = (remain - (d * 3600) - h * 60);
+  }
+
+  if (isReset)
+  {
+    // 第一次进来
+    isReset = false;
+    unsigned char *tmp = getNumData(d / 10, false);
+    for (int x = 0; x < 8; x++)
+    {
+      data[3][x] = tmp[x];
+      data[0][x] = 0x0;
+      data[1][x] = 0x0;
+    }
+    free(tmp);
+    unsigned char *tmp2 = getNumData((d % 10) * 10, true);
+    for (int x = 0; x < 8; x++)
+    {
+      data[2][x] = tmp2[x];
+    }
+    free(tmp2);
+    upOrDownMove(3, 0xf0, true);
+    upOrDownMove(2, 0xf0, false);
+    mfs[0] = 0xff;
+    mfs[1] = 0xff;
+    minutechange = true;
+  }
+  else
+  {
+    // 倒计时天数动起来
+    upOrDownMove(3, 0x0f, arr[1] > 3);
+    upOrDownMove(3, 0xf0, arr[0] > 3);
+    upOrDownMove(2, 0xf0, arr[2] > 3);
+    // 判断哪些需要向下滚动
+    mfs[0] = m % 10 != 9 ? 0x0f : 0xff;
+    if (m == 59)
+    {
+      mfs[1] = (h % 10 == 9 || h % 10 == 3) ? 0xff : 0x0f;
+    }
+  }
+
+  // 比较蠢的做法
+  uint8_t lastoffset = (0xff >> 2) << 2;
+  uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - 2);
+  mfs[2] = (mfs[2] & lastoffset) + ((mfs[1] & nextoffset) >> (8 - 2));
+  mfs[1] <<= 2;
+  // 显示小时数
+  unsigned char *tmp3 = getNumData(h, false);
+  for (int x = 0; x < 8; x++)
+  {
+    buff[1][x] = tmp3[x];
+  }
+  free(tmp3);
+  offsetBuff(1, -2);
+  // 显示分钟数
+  unsigned char *tmp4 = getNumData(m, false);
+  for (int x = 0; x < 8; x++)
+  {
+    buff[0][x] = tmp4[x];
+  }
+  free(tmp4);
+  // 显示点
+  data[1][3] = (data[1][3] & ((0x80 >> 6) ^ 0xff)) + (0x80 >> 6);
+
+  if (remain >= 0 && minutechange)
+  {
+    // 倒计时还没结束就显示动画
+    for (int i = 0; i < 8; i++)
+    {
+      downMoveBuff(mfs);
+      delay(80);
+    }
+  }
+  else
+  {
+    refreshLed();
+  }
+}
+
 void Lattice::showLongNumber(uint8_t *arr)
 {
   if (isReset)
@@ -661,7 +786,7 @@ void Lattice::showLongNumber(uint8_t *arr)
     for (int k = 0; k < columnLength; k++)
     {
       // 得到新的要显示的数字
-      unsigned char *tmp = getNumData(arr[k]);
+      unsigned char *tmp = getNumData(arr[k], false);
       for (int x = 0; x < 8; x++)
       {
         buff[k][x] = tmp[x];
@@ -706,7 +831,7 @@ void Lattice::showNumAndIcon(uint8_t no, uint8_t *arr)
       else
       {
         // 得到新的要显示的数字
-        unsigned char *tmp = getNumData(arr[k]);
+        unsigned char *tmp = getNumData(arr[k], false);
         for (int x = 0; x < 8; x++)
         {
           buff[k][x] = tmp[x];
@@ -795,7 +920,7 @@ void Lattice::showDate3(uint8_t *arr)
     for (int k = 0; k < columnLength; k++)
     {
       // 得到新的要显示的数字
-      unsigned char *tmp = getNumData(arr[k]);
+      unsigned char *tmp = getNumData(arr[k], false);
       for (int x = 0; x < 8; x++)
       {
         buff[k][x] = tmp[x];
@@ -831,7 +956,7 @@ void Lattice::showTemperature(uint8_t *arr)
     for (int k = 0; k < columnLength; k++)
     {
       // 得到新的要显示的数字
-      unsigned char *tmp = getNumData(arr[k]);
+      unsigned char *tmp = getNumData(arr[k], false);
       for (int x = 0; x < 8; x++)
       {
         buff[k][x] = tmp[x];
@@ -953,7 +1078,7 @@ void Lattice::showOtaUpdate(uint8_t num)
   {
     mfs[1] = 0xff;
     // 得到新的要显示的数字
-    unsigned char *tmp = getNumData(num);
+    unsigned char *tmp = getNumData(num, false);
     for (int i = 0; i < rowLength; i++)
     {
       data[1][i] = tmp[i];
