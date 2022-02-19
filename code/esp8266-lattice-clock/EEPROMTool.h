@@ -5,48 +5,83 @@
 
 #define EEPROM_BEGIN 1024
 
-struct EEPROMTOOLS {
+struct EEPROMTOOLS
+{
 
   /**
- * 保存数据
- */
-  void saveData(uint8_t *data, int offset, int length) {
+   * @brief 保存数据
+   */
+  void saveData(uint8_t *data, int offset, int length)
+  {
     EEPROM.begin(EEPROM_BEGIN);
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++)
+    {
       EEPROM.write(offset + i, data[i] & 0xff);
     }
     EEPROM.commit();
   }
+  /**
+   * @brief 只保存一位数据
+   *
+   * @param data
+   * @param offset
+   */
+  void saveDataOne(uint8_t data, int offset)
+  {
+    EEPROM.begin(EEPROM_BEGIN);
+    EEPROM.write(offset, data & 0xff);
+    EEPROM.commit();
+  }
 
   /**
-   *获取数据
-    */
-  uint8_t *loadData(int offset, int length) {
+   * @brief 获取数据
+   *
+   * @param offset
+   * @param length
+   * @return uint8_t*
+   */
+  uint8_t *loadData(int offset, int length)
+  {
     unsigned char *arr = new uint8_t[length];
     EEPROM.begin(EEPROM_BEGIN);
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < length; i++)
+    {
       arr[i] = EEPROM.read(offset + i);
     }
     return arr;
   }
 
   /**
-   * 删除数据
+   * @brief 获取一位数据
    */
-  void clearData(int offset, int length) {
+  uint8_t loadDataOne(int offset)
+  {
+    unsigned char *arr = new uint8_t[1];
     EEPROM.begin(EEPROM_BEGIN);
-    for (int i = 0; i < length; i++) {
+    return EEPROM.read(offset);
+  }
+
+  /**
+   * @brief 删除数据
+   */
+  void clearData(int offset, int length)
+  {
+    EEPROM.begin(EEPROM_BEGIN);
+    for (int i = 0; i < length; i++)
+    {
       EEPROM.write(offset + i, 0x0);
     }
     EEPROM.commit();
   }
 
   /**
-   * 删除全部数据
+   * @brief 删除全部数据
    */
-  void clearAll() {
+  void clearAll()
+  {
     EEPROM.begin(EEPROM_BEGIN);
-    for (int i = 0; i < EEPROM_BEGIN; i++) {
+    for (int i = 0; i < EEPROM_BEGIN + 300; i++)
+    {
       EEPROM.write(i, 0x0);
     }
     EEPROM.commit();

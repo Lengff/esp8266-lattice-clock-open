@@ -23,7 +23,6 @@ void HttpTool::bilibiliFans()
     if (httpCode == HTTP_CODE_OK)
     {
       String nums = espClient.getString();
-      Serial.println(nums);
       fans = strtol(nums.c_str(), NULL, 10);
       Serial.println(fans);
     }

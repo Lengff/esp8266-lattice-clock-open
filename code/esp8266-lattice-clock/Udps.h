@@ -1,11 +1,11 @@
 #ifndef UDPS_H
 #define UDPS_H
 
+#include "DateTimes.h"
+#include "Lattice.h"
+#include <DS3231.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
-#include <DS3231.h>
-#include "Lattice.h"
-#include "DateTimes.h"
 
 #define localPort 1234     // 监听本地UDP数据包端口
 #define remoteNtpPort 123  // 远程服务端口
@@ -25,62 +25,60 @@ private:
   long timeFlag = 0;
 
   /**
-   * NTP服务器网址
+   * @brief NTP服务器网址
    */
   const char *ntpServerName = "cn.ntp.org.cn";
 
   /**
-   * 服务器IP
+   * @brief 服务器IP
    */
   IPAddress timeServerIP;
 
   /**
-   * 接收到的ntp数据包
+   * @brief 接收到的ntp数据包
    */
   byte packetBuffer[NTP_PACKET_SIZE];
 
   /**
-   * 返回UDP数据包
+   * @brief 返回UDP数据包
    */
   char replyPacket[4];
 
   /**
-   * udp对象
+   * @brief udp对象
    */
   WiFiUDP udp;
 
   /**
-   * 发送NTP数据包
+   * @brief 发送NTP数据包
    */
   void sendNTPpacket();
 
 public:
   /**
-   * 是否
+   * @brief 是否
    */
   bool isSetTime;
   /**
-   * 构造函数
+   * @brief构造函数
    */
   Udps();
 
+  /**
+   * @brief 初始化UDP信息
+   *
+   */
   void initudp();
 
   /**
-   * 开始重置时间
+   * @brief设置系统时间
    */
-  void startSet();
+  long getNtpTimestamp();
 
   /**
-   * 设置系统时间
+   * @brief接收自定义UPD协议的数据
    */
-  bool setTimes(DateTimes datetimes);
-
-  /**
-   * 接收自定义UPD协议的数据
-   */
-  Udpdata userLatticeLoop(LatticeSetting latticeSetting, uint8_t power,
-                          uint8_t mode, uint8_t version);
+  Udpdata userLatticeLoop(LatticeSetting latticeSetting, uint8_t power, uint8_t mode, uint8_t version);
 };
 
 #endif
