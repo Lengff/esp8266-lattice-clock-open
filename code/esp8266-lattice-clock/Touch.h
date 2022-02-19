@@ -1,13 +1,22 @@
 #ifndef TOUCH_H
 #define TOUCH_H
+#include "EEPROMTool.h"
+#include "HttpTool.h"
+#include "PilotLight.h"
+#include "Udps.h"
+#include "Wifis.h"
 #include <ESP8266WiFi.h>
 #include <OneButton.h>
-#include "Wifis.h"
-#include "HttpTool.h"
-#include "EEPROMTool.h"
 
+// UDP数据传输对象
+Udps udps;
+// wifi对象
+Wifis wifis = Wifis();
+// 按钮对象
 OneButton btnA = OneButton(D8, false, false);
-
+// 控制LED亮灭对象
+PilotLight pilotLight = PilotLight();
+// 点阵显示对象
 Lattice lattice = Lattice(false);
 // 点阵显示数,每个点阵应该显示那些数据
 unsigned char displayData[4] = {0x00, 0x00, 0x00, 0xff};
@@ -39,10 +48,8 @@ uint8_t modePower[6] = {3, 3, 1, 1, 5, 1};
 uint8_t powers[6] = {0, 0, 0, 0, 0, 1};
 // 0:显示时间，1:显示日日期，2:显示温度，3：显示倒计时，4：显示自定义内容
 uint8_t power = 0;
-// 是否是编辑模式(此功能没开发完)
-bool isedit = false;
 // 记录按键按下时间
-uint32_t clicktime = 0, isadd = 0;
+uint32_t clicktime = 0;
 // 功能flag
 long powerFlag = 0, powerFlag2 = 0;
 
@@ -75,14 +82,19 @@ void initStatus()
 */
 void singleAClick()
 {
-  if (!isedit)
+  Serial.println("A按键单击");
+  // 如果wifi未连接,且当前wifi模式为wifi直连模式,单击则修改wifi模式为热点模式
+  if (WiFi.status() != WL_CONNECTED && wifis.wifiMode == 0x0)
   {
-    // 非编辑状态，切换显示模式
+    // wifi没连接上的情况
+    wifis.enableApMode();
+  }
+  else
+  {
+    pilotLight.flashing(100); // 按键单击时先闪一下LED
     power = power == powerLength ? 0 : ++power;
     initStatus();
   }
-  isadd = 1;
-  Serial.println("A按键单击");
 }
 
 /**
@@ -90,9 +102,10 @@ void singleAClick()
 */
 void doubleAClick()
 {
+  pilotLight.flashing(100); // 按键单击时先闪一下LED
+  Serial.println("A按键双击");
   powers[power] = powers[power] == (modePower[power] - 1) ? 0 : ++powers[power];
   initStatus();
-  Serial.println("A按键双击");
 }
 
 /**
@@ -101,6 +114,7 @@ void doubleAClick()
 void longAClickStart()
 {
   Serial.println("A按键长按开始");
+  pilotLight.bright(); // 按下的时候LED亮起来
   clicktime = millis();
 }
 
@@ -110,6 +124,7 @@ void longAClickStart()
 void longAClick()
 {
   Serial.println("A按键长按结束");
+  pilotLight.dim(); // 按下的时候LED熄灭
   clicktime = millis() - clicktime + 1000;
   if (clicktime > 2000 && clicktime <= 5000) // 如果长按时间大于3秒,小于六秒则表示重置时间
   {

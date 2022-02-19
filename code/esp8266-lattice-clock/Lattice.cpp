@@ -645,7 +645,6 @@ void Lattice::showTime3(uint8_t *arr)
     {
       if (mfs[j] == 0x0)
       {
-        Serial.println("debug: mfs[j] is zero");
         // 如果说没有改变则忽略
         break;
       }
@@ -998,15 +997,11 @@ void Lattice::showUserData(uint8_t mode)
       {
         for (int j = 0; j < 8; j++)
         {
-          buff[i][j] = latticeSetting.userData[i * 8 + j];
+          data[i][j] = latticeSetting.userData[i * 8 + j];
         }
       }
-      for (int i = 0; i < 8; i++)
-      {
-        downMoveBuff();
-        delay(80);
-      }
     }
+    refreshLed();
     return;
   }
   else if (mode == 1)

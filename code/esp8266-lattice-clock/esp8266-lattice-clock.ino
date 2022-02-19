@@ -1,21 +1,18 @@
 #include <ESP8266WiFi.h>
 
-#include <DS3231.h>
-#include <Wire.h>
-#include <Ticker.h>
-
-#include "EEPROMTool.h"
-#include "Wifis.h"
-#include "Lattice.h"
-#include "Udps.h"
-#include "Otas.h"
 #include "DateTimes.h"
+#include "EEPROMTool.h"
 #include "HttpTool.h"
+#include "Lattice.h"
+#include "Otas.h"
+#include <DS3231.h>
+#include <Ticker.h>
+#include <Wire.h>
 
 Ticker httptoolticker;
 HttpTool httptool;
-Wifis wifis;
-Udps udps;
+
+// 时间管理对象
 DateTimes datetimes = DateTimes();
 
 bool updateFansIf = false;
@@ -56,23 +53,44 @@ void setCountdown(uint8_t *data)
 }
 
 /**
-   重置时间
-*/
-bool resetTime()
+ * @brief 重置时间
+ * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
+ * @param data
+ */
+void resetTime(uint8_t *data)
 {
-  udps.startSet(); // 开始设置时间
-  while (!udps.isSetTime)
+  long timestamp = 0;
+  if (wifis.wifiMode == 0x01)
   {
-    udps.setTimes(datetimes);
-    delay(100);
-    lattice.showLongIcon(2); // 这里延迟两秒是因为过程太快了,交互体验不好
+    // 先将uint_8转成 long
+    for (int i = 0; i < 5; i++)
+    {
+      timestamp += data[i] << (i * 8);
+    }
+    datetimes.setDateTimes(timestamp + 8 * 60 * 60);
+    initStatus();
+    power = POWER0;
+    powers[power] = 0;
+    return;
   }
-  isedit = false;
-  isadd = 0;
-  initStatus();
-  power = POWER0;
-  powers[power] = 0;
-  ESP.wdtFeed();
+  else
+  {
+    for (int i = 0; i < 5; i++) // 这里五次循环是为了只处理五次,五次都失败的话可能就是网络不好了
+    {
+      timestamp = udps.getNtpTimestamp();
+      lattice.showLongIcon(2); // 这里延迟两秒是因为过程太快了,交互体验不好
+      pilotLight.flashing();   // 校准时间LED闪烁
+      if (timestamp != 0)
+      {
+        datetimes.setDateTimes(timestamp);
+        initStatus();
+        power = POWER0;
+        powers[power] = 0;
+        return;
+      }
+      delay(100);
+    }
+  }
 }
 
 /**
@@ -198,36 +216,6 @@ void showCountDown()
 }
 
 /**
- * 手动编辑时间 --> 这个功能只做到了一半, 看看就好了
- */
-void editTime(uint8_t addit, uint8_t showmode)
-{
-  if (showmode == 0)
-  {
-    displayData[0] = addit == 1 ? (displayData[0] == 59 ? 0 : ++displayData[0])
-                                : (displayData[0] == 0 ? 59 : --displayData[0]);
-  }
-  else if (showmode == 1)
-  {
-    displayData[1] = addit == 1 ? (displayData[1] == 59 ? 0 : ++displayData[1])
-                                : (displayData[1] == 0 ? 59 : --displayData[1]);
-  }
-  else if (showmode == 2)
-  {
-    displayData[2] = addit == 1 ? (displayData[2] == 23 ? 0 : ++displayData[2])
-                                : (displayData[2] == 0 ? 23 : --displayData[2]);
-  }
-  else
-  {
-
-    resetTime(); // 提前结束
-    powers[power] = 0;
-    return;
-  }
-  lattice.showTime(displayData);
-}
-
-/**
    显示日期
 */
 void showDate(uint8_t showmode)
@@ -292,7 +280,6 @@ void showBiliFans()
 {
   if (updateFansIf) // 判断是否需要更新bilibili粉丝数量
   {
-    Serial.println(datetimes.getTimestamp());
     httptool.bilibiliFans(); // 每五秒获取一次bilibili粉丝信息
     updateFansIf = false;    // 重置状态
   }
@@ -357,19 +344,16 @@ void resetsystem()
  */
 void handleUdpData()
 {
-  if (!updateFansIf)
-  {
-    // 五秒种打印一次数据信息 todo 这里后期可以改成MQTT协议向服务器上报状态信息
-  }
   Udpdata udpdata = udps.userLatticeLoop(lattice.latticeSetting, power, powers[power], version);
   if (udpdata.lh < 1) // 数据长度小于1则表示没有接收到任何数据
   {
     return; // 没有收到任何UDP数据
   }
-  switch (udpdata.te) // 判断UDP数据类型
+  pilotLight.flashing(100); // 每次接收到UDP数据的时候都闪烁一下LED灯
+  switch (udpdata.te)       // 判断UDP数据类型
   {
   case 0:
-    resetTime(); // 重置时间
+    resetTime(udpdata.data); // 重置时间
     break;
   case 1:
     lattice.setBrightness(udpdata.data[0]); // 设置亮度
@@ -414,49 +398,34 @@ void handleUdpData()
  */
 void handlePower()
 {
-  if (!isedit)
+  switch (power) // 显示数据模式
   {
-    switch (power) // 显示数据模式
-    {
-    case POWER0:
-      showTime(powers[power]); // 显示时间
-      break;
-    case POWER1:
-      showDate(powers[power]); // 显示日期
-      break;
-    case POWER2:
-      showTemperature(); // 显示温度
-      break;
-    case BILIFANS:
-      showBiliFans(); // 显示bilibili粉丝数量
-      break;
-    case CUSTOM:
-      showUserData(powers[power]); // 显示用户自定义的数据
-      break;
-    case COUNTDOWN:
-      showCountDown(); // 显示倒计时
-      break;
-    case RESET:
-      resetsystem(); // 重置系统
-      break;
-    case RESETTIME:
-      resetTime(); // 重置时间
-      break;
-    default:
-      break; // 默认不做任何处理
-    }
-  }
-  else if (isedit && isadd != 0)
-  {
-    switch (power) // 编辑数据模式 （此功能待商榷）
-    {
-    case POWER0:
-      editTime(isadd, powers[power]);
-      break;
-    default:
-      break;
-    }
-    isadd = 0;
+  case POWER0:
+    showTime(powers[power]); // 显示时间
+    break;
+  case POWER1:
+    showDate(powers[power]); // 显示日期
+    break;
+  case POWER2:
+    showTemperature(); // 显示温度
+    break;
+  case BILIFANS:
+    showBiliFans(); // 显示bilibili粉丝数量
+    break;
+  case CUSTOM:
+    showUserData(powers[power]); // 显示用户自定义的数据
+    break;
+  case COUNTDOWN:
+    showCountDown(); // 显示倒计时
+    break;
+  case RESET:
+    resetsystem(); // 重置系统
+    break;
+  case RESETTIME:
+    resetTime(displayData); // 重置时间,这里是随便传的一个参数,不想重新声明参数
+    break;
+  default:
+    break; // 默认不做任何处理
   }
 }
 
@@ -464,10 +433,19 @@ void setup()
 {
   Serial.begin(115200);
   initTouch();                                 // 初始化按键信息
-  wifis.connWifi(lattice);                     // 连接wifi
+  wifis.connWifi(lattice, pilotLight);         // 连接wifi
   udps.initudp();                              // 初始化UDP客户端
+  pilotLight.dim();                            //正常进操作就熄灭指示灯
   httptoolticker.attach(5, updateBiliFstatus); // 每分钟更新一次bilibili粉丝数量
-  httptool.bilibiliFans();                     // 刷新bilibili粉丝数量
+  if (wifis.wifiMode == 0x01)
+  {
+    resetTime(displayData);  // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.bilibiliFans(); // 刷新bilibili粉丝数量
+  }
+  else
+  {
+    pilotLight.bright(); // 如果是热点模式的话,指示的LED灯常亮
+  }
 }
 
 void loop()
