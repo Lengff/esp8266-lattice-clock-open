@@ -437,7 +437,7 @@ void setup()
   udps.initudp();                              // 初始化UDP客户端
   pilotLight.dim();                            //正常进操作就熄灭指示灯
   httptoolticker.attach(5, updateBiliFstatus); // 每分钟更新一次bilibili粉丝数量
-  if (wifis.wifiMode == 0x01)
+  if (wifis.wifiMode == 0x00)
   {
     resetTime(displayData);  // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
     httptool.bilibiliFans(); // 刷新bilibili粉丝数量

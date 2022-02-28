@@ -17,7 +17,7 @@ void Wifis::initWifi()
     WiFi.mode(WIFI_AP);              // 设置wifi模式为热点模式
     wifiMode = 0x01;                 // 标记当前wifi模式
     WiFi.softAP(ssid, password);     // 设置wifi热点账号密码
-    EEPROMTool.saveDataOne(0x00,1); // 处理完热点模式以后随机将默认模式改为wifi模式
+    EEPROMTool.saveDataOne(0x00, 1); // 处理完热点模式以后随机将默认模式改为wifi模式
   }
   else
   {
@@ -107,6 +107,6 @@ void Wifis::loadConfigs()
 
 void Wifis::enableApMode()
 {
-  EEPROMTool.saveDataOne(0x01,1); // 修改wifi模式,随后重启ESP
-  ESP.restart();                   // 重启系统
+  EEPROMTool.saveDataOne(0x01, 0x01); // 修改wifi模式,随后重启ESP
+  ESP.restart();                      // 重启系统
 }

@@ -2,6 +2,7 @@
 #define LATTICE_H
 
 #include <LedControl.h>
+#include "EEPROMTool.h"
 
 const uint8_t rowLength = 8;
 const uint8_t columnLength = 4;
@@ -146,7 +147,7 @@ struct LatticeSetting
     /**
      * 显示方向, true: 正方向，false: 反方向
      */
-    bool direction = true;
+    bool direction = false;
 
     /**
      * 用户自定义数据
@@ -264,11 +265,6 @@ public:
      * 构造函数
      */
     Lattice();
-
-    /**
-     * 显示方向
-     */
-    Lattice(bool direct);
 
     /**
      *  初始化

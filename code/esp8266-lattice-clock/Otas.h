@@ -1,14 +1,14 @@
 #ifndef OTAS_H
 #define OTAS_H
 #include "Touch.h"
-#include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
 #include <ESP8266httpUpdate.h>
 
 /**
  * OTA 固件版本号
  */
-const uint8_t version = 6;
+const uint8_t version = 7;
 
 void update_started()
 {
@@ -26,7 +26,7 @@ void update_finished()
 void update_progress(int cur, int total)
 {
   Serial.printf("回调:  HTTP更新过程位于 %d of %d bytes...\n", cur, total);
-  pilotLight.flashing(50); // 固件升级的时候LED闪
+  pilotLight.flashing(50);                                   // 固件升级的时候LED闪
   lattice.showOtaUpdate((int)((cur / (double)total) * 100)); // OTA显示当前进度图案
 }
 

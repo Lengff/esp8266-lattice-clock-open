@@ -17,7 +17,7 @@ OneButton btnA = OneButton(D8, false, false);
 // 控制LED亮灭对象
 PilotLight pilotLight = PilotLight();
 // 点阵显示对象
-Lattice lattice = Lattice(false);
+Lattice lattice = Lattice();
 // 点阵显示数,每个点阵应该显示那些数据
 unsigned char displayData[4] = {0x00, 0x00, 0x00, 0xff};
 

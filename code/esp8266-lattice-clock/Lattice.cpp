@@ -2,29 +2,19 @@
 
 Lattice::Lattice() { init(); }
 
-Lattice::Lattice(bool direct)
-{
-  // 初始化屏幕方向,
-  latticeSetting.direction = direct;
-  init();
-}
 void Lattice::init()
 {
-  // 默认是启用点阵屏幕
-  latticeSetting.isShutdown = false;
-  latticeSetting.brightness = 0x0;
-  shutdown(latticeSetting.isShutdown);
-  // 将亮度设置为最低
-  setBrightness(latticeSetting.brightness);
-  // 初始化自定义数据
+  latticeSetting.direction = EEPROMTool.loadDataOne(0x04);  // 从eeprom中获取屏幕方向
+  latticeSetting.isShutdown = false;                        // 默认是启用点阵屏幕
+  latticeSetting.brightness = EEPROMTool.loadDataOne(0x03); // 从eeprom中获取亮度信息
+  shutdown(latticeSetting.isShutdown);                      // 是否关闭点阵屏幕
+  setBrightness(latticeSetting.brightness);                 // 将亮度设置为最低
   for (int i = 0; i < 32; i++)
   {
-    latticeSetting.userData[i] = noseticon[i];
+    latticeSetting.userData[i] = noseticon[i]; // 初始化自定义数据
   }
-  // 自定义动画速度
-  latticeSetting.speed = 1;
-  // 初始化点阵显示内容
-  initLattice();
+  latticeSetting.speed = 1; // 自定义动画速度
+  initLattice();            // 初始化点阵显示内容
 }
 
 void Lattice::shutdown(bool down)
@@ -32,8 +22,7 @@ void Lattice::shutdown(bool down)
   latticeSetting.isShutdown = down;
   for (int i = 0; i < columnLength; i++)
   {
-    //启用/停用点阵
-    lc.shutdown(i, down);
+    lc.shutdown(i, down); //启用/停用点阵
   }
 }
 
@@ -41,20 +30,21 @@ void Lattice::setBrightness(uint8_t bright)
 {
   if (bright > 15)
   {
-    // 超出最大值
-    bright = 15;
+    bright = 15;                        // 超出最大值则设置为最大值
+    EEPROMTool.saveDataOne(0x15, 0x03); // 设置亮度信息到EEPROM
   }
-  latticeSetting.brightness = bright;
+  latticeSetting.brightness = bright; // 设置屏幕亮度
   for (int i = 0; i < columnLength; i++)
   {
-    // 设置亮度
-    lc.setIntensity(i, latticeSetting.brightness);
+    EEPROMTool.saveDataOne(bright, 0x03);          // 设置亮度信息到EEPROM
+    lc.setIntensity(i, latticeSetting.brightness); // 设置亮度
   }
 }
 
 void Lattice::setDirection(bool direct)
 {
-  latticeSetting.direction = direct;
+  latticeSetting.direction = direct;    // 设置屏幕显示方向
+  EEPROMTool.saveDataOne(direct, 0x04); // 设置亮度信息到EEPROM
   refreshLed();
 }
 
