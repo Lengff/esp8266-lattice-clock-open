@@ -1,9 +1,9 @@
 #ifndef HTTP_TOOL_H
 #define HTTP_TOOL_H
 
-#include <ESP8266WiFi.h>
-#include <ESP8266HTTPClient.h>
 #include "EEPROMTool.h"
+#include <ESP8266HTTPClient.h>
+#include <ESP8266WiFi.h>
 
 class HttpTool
 {
@@ -15,8 +15,8 @@ private:
   HTTPClient espClient;
 
   /**
-    * 加载BiliBili_Uid
-    */
+   * 加载BiliBili_Uid
+   */
   long loadBuid();
 
   /**
@@ -27,7 +27,7 @@ private:
   /**
    * 获取bilibili粉丝数量的接口 （此处欠妥，先这用着，后续优化）
    */
-  const String bilibiliFansApi = "http://blog.lengff.com/openapi/bili/f/";
+  const String bilibiliFansApi = "http://api.lengff.com/openapi/bili/f/";
 
 public:
   HttpTool();
@@ -48,8 +48,8 @@ public:
   void bilibiliFans();
 
   /**
-    * 保存BiliBili_Uid
-    */
+   * 保存BiliBili_Uid
+   */
   void saveBuid(long uid);
 };
 

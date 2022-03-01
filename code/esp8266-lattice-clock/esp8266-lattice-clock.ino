@@ -75,7 +75,7 @@ void resetTime(uint8_t *data)
   }
   else
   {
-    for (int i = 0; i < 5; i++) // 这里五次循环是为了只处理五次,五次都失败的话可能就是网络不好了
+    for (int i = 0; i < 50; i++) // 这里五次循环是为了只处理五次,五次都失败的话可能就是网络不好了
     {
       timestamp = udps.getNtpTimestamp();
       lattice.showLongIcon(2); // 这里延迟两秒是因为过程太快了,交互体验不好

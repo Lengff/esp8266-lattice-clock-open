@@ -17,42 +17,31 @@ class Wifis
 {
 private:
   /**
-   * @brief 记录wifi账号密码的结构体 2022-2-17 今天才发现这里有可能多次一举，但是也先放着，后续有时间改改
+   * @brief 是否记住wifi密码
    *
    */
-  struct WifiPwd
-  {
-    uint8_t rememberPwd = 0x00; // 记住wifi密码,如果这个值为0xfe时,表示为记住wifi密码
-  };
+  bool rememberWifiPwd = true;
 
   /**
-   * @brief 声明变量
+   * @brief 固定设备热点的SSID
    *
    */
-  WifiPwd wifipwd;
-
-  /**
-   * @brief 保存WiFi密码信息
-   *
-   */
-  void saveConfig();
-
-  /**
-   * @brief 加载WiFi账号密码
-   *
-   */
-  void loadConfigs();
-
-  /* Set these to your desired credentials. */
   const char *ssid = APSSID;
 
+  /**
+   * @brief 固定设备热点的密码
+   *
+   */
   const char *password = APPSK;
 
   /**
    * @brief 初始化wifi
-   * 
+   *
    */
   void initWifi();
+
+
+  int timer;
 
 public:
   /**

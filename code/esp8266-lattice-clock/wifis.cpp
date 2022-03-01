@@ -12,12 +12,12 @@ Wifis::Wifis()
 
 void Wifis::initWifi()
 {
-  if (EEPROMTool.loadDataOne(1) == 0x01) // 如果取到的数据为1时表示启动了热点模式
+  if (EEPROMTool.loadDataOne(WIFI_MODE) == 0x01) // 如果取到的数据为1时表示启动了热点模式
   {
-    WiFi.mode(WIFI_AP);              // 设置wifi模式为热点模式
-    wifiMode = 0x01;                 // 标记当前wifi模式
-    WiFi.softAP(ssid, password);     // 设置wifi热点账号密码
-    EEPROMTool.saveDataOne(0x00, 1); // 处理完热点模式以后随机将默认模式改为wifi模式
+    WiFi.mode(WIFI_AP);                      // 设置wifi模式为热点模式
+    wifiMode = 0x01;                         // 标记当前wifi模式
+    WiFi.softAP(ssid, password);             // 设置wifi热点账号密码
+    EEPROMTool.saveDataOne(0x00, WIFI_MODE); // 处理完热点模式以后随机将默认模式改为wifi模式
   }
   else
   {
@@ -29,13 +29,13 @@ void Wifis::initWifi()
 void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
 {
   initWifi();
+  timer = 0; // 清零计数器
   if (wifiMode == 0x01)
   {
     // 如果wifi模式为热点模式,则不进wifi连接和配网
     return;
-  }
-  loadConfigs();                              // 先从flash中加载账号密码
-  if (wifipwd.rememberPwd == 0xfe || usePass) // 如果记住wifi值不为0xfe表示存在WiFi账号密码等信息
+  }                                                     // 先从flash中加载账号密码
+  if (EEPROMTool.loadDataOne(REMEMBER_WIFI) || usePass) // 如果记住wifi值不为0xfe表示存在WiFi账号密码等信息
   {
     // 如果说有账号密码信息,那就直接用账号密码连接wifi
     Serial.println("start connect wifi ");
@@ -49,15 +49,15 @@ void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
     }
     while (WiFi.status() != WL_CONNECTED)
     {
-      pilotLight.flashing();              // 闪烁LED灯
-      lattice.showLongIcon(0);            // 显示连接wifi图案
-      if (WiFi.softAPgetStationNum() > 0) // 有手机连接上了设备热点的话,跳出循环
-      {
-        wifiMode = 0x01;
-        pilotLight.bright(); // 开启wifi热点LED灯常亮
-        break;
-      }
+      timer++;
+      pilotLight.flashing();   // 闪烁LED灯
+      lattice.showLongIcon(0); // 显示连接wifi图案
       delay(100);
+      if (timer >= 600) // 如果计数器大于60次,表示超过一分钟,则说明一分钟都没有连接上wifi,就不连了
+      {
+        timer = 0; // 清零计数器
+        break;     // 联网失败
+      }
     }
     WiFi.setAutoConnect(true); // 设置自动连接
   }
@@ -67,46 +67,30 @@ void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
     Serial.println("smart config wifi ");
     while (1)
     {
-      lattice.showLongIcon(1);            // 显示配网中图案信息
-      pilotLight.flashing();              // 闪烁LED灯
-      if (WiFi.softAPgetStationNum() > 0) // 有手机连接上了设备热点的话,跳出循环
+      timer++;
+      lattice.showLongIcon(1); // 显示配网中图案信息
+      pilotLight.flashing();   // 闪烁LED灯
+      delay(500);              // 等待半秒钟
+      if (timer >= 20)         // 如果配网次数超过20此,则重启系统,重新配网
       {
-        wifiMode = 0x01;
-        pilotLight.bright(); // 开启wifi热点LED灯常亮
-        break;
+        ESP.restart(); // 重启系统
+        return;
       }
-      delay(500);
       if (WiFi.smartConfigDone()) // 配网成功
       {
-        wifipwd.rememberPwd = 0xfe; // 记住wifi密码
-        WiFi.setAutoConnect(true);  // 设置自动连接
-        saveConfig();
+        WiFi.setAutoConnect(true);                   // 设置自动连接
+        EEPROMTool.saveDataOne(true, REMEMBER_WIFI); // 记住wifi密码
         break;
       }
     }
   }
   Serial.println("conn wifi successful");
   delay(500); // 等几秒再进入系统
-}
-
-void Wifis::saveConfig()
-{
-  EEPROMTool.saveData((uint8_t *)(&wifipwd), 0, sizeof(wifipwd));
-}
-
-void Wifis::loadConfigs()
-{
-  uint8_t *p = (uint8_t *)(&wifipwd);
-  uint8_t *temp = EEPROMTool.loadData(0, sizeof(wifipwd));
-  for (int i = 0; i < sizeof(wifipwd); i++)
-  {
-    p[i] = temp[i];
-  }
-  free(temp); // 用完以后删除内存
+  timer = 0;  // 清零计数器
 }
 
 void Wifis::enableApMode()
 {
-  EEPROMTool.saveDataOne(0x01, 0x01); // 修改wifi模式,随后重启ESP
-  ESP.restart();                      // 重启系统
+  EEPROMTool.saveDataOne(0x01, WIFI_MODE); // 修改wifi模式,随后重启ESP
+  ESP.restart();                           // 重启系统
 }

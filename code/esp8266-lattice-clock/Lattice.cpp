@@ -4,11 +4,11 @@ Lattice::Lattice() { init(); }
 
 void Lattice::init()
 {
-  latticeSetting.direction = EEPROMTool.loadDataOne(0x04);  // 从eeprom中获取屏幕方向
-  latticeSetting.isShutdown = false;                        // 默认是启用点阵屏幕
-  latticeSetting.brightness = EEPROMTool.loadDataOne(0x03); // 从eeprom中获取亮度信息
-  shutdown(latticeSetting.isShutdown);                      // 是否关闭点阵屏幕
-  setBrightness(latticeSetting.brightness);                 // 将亮度设置为最低
+  latticeSetting.direction = EEPROMTool.loadDataOne(DIRECTION);   // 从eeprom中获取屏幕方向
+  latticeSetting.isShutdown = false;                              // 默认是启用点阵屏幕
+  latticeSetting.brightness = EEPROMTool.loadDataOne(BRIGHTNESS); // 从eeprom中获取亮度信息
+  shutdown(latticeSetting.isShutdown);                            // 是否关闭点阵屏幕
+  setBrightness(latticeSetting.brightness);                       // 将亮度设置为最低
   for (int i = 0; i < 32; i++)
   {
     latticeSetting.userData[i] = noseticon[i]; // 初始化自定义数据
@@ -30,21 +30,21 @@ void Lattice::setBrightness(uint8_t bright)
 {
   if (bright > 15)
   {
-    bright = 15;                        // 超出最大值则设置为最大值
-    EEPROMTool.saveDataOne(0x15, 0x03); // 设置亮度信息到EEPROM
+    bright = 15;                              // 超出最大值则设置为最大值
+    EEPROMTool.saveDataOne(0x15, BRIGHTNESS); // 设置亮度信息到EEPROM
   }
   latticeSetting.brightness = bright; // 设置屏幕亮度
   for (int i = 0; i < columnLength; i++)
   {
-    EEPROMTool.saveDataOne(bright, 0x03);          // 设置亮度信息到EEPROM
+    EEPROMTool.saveDataOne(bright, BRIGHTNESS);    // 设置亮度信息到EEPROM
     lc.setIntensity(i, latticeSetting.brightness); // 设置亮度
   }
 }
 
 void Lattice::setDirection(bool direct)
 {
-  latticeSetting.direction = direct;    // 设置屏幕显示方向
-  EEPROMTool.saveDataOne(direct, 0x04); // 设置亮度信息到EEPROM
+  latticeSetting.direction = direct;         // 设置屏幕显示方向
+  EEPROMTool.saveDataOne(direct, DIRECTION); // 设置亮度信息到EEPROM
   refreshLed();
 }
 
@@ -1041,6 +1041,8 @@ void Lattice::lightning(uint8_t index)
 
 void Lattice::showOtaUpdate(uint8_t num)
 {
+  Serial.println("update num");
+  Serial.println(num);
   uint8_t mfs[4] = {0x00, 0x00, 0x00, 0x00};
   if (isReset)
   {
