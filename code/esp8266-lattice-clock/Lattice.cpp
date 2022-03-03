@@ -8,7 +8,7 @@ void Lattice::init()
   latticeSetting.isShutdown = false;                              // 默认是启用点阵屏幕
   latticeSetting.brightness = EEPROMTool.loadDataOne(BRIGHTNESS); // 从eeprom中获取亮度信息
   shutdown(latticeSetting.isShutdown);                            // 是否关闭点阵屏幕
-  setBrightness(latticeSetting.brightness);                       // 将亮度设置为最低
+  setBrightness(latticeSetting.brightness, true);                 // 将亮度设置为最低
   for (int i = 0; i < 32; i++)
   {
     latticeSetting.userData[i] = noseticon[i]; // 初始化自定义数据
@@ -26,18 +26,21 @@ void Lattice::shutdown(bool down)
   }
 }
 
-void Lattice::setBrightness(uint8_t bright)
+void Lattice::setBrightness(uint8_t bright, bool save)
 {
   if (bright > 15)
   {
-    bright = 15;                              // 超出最大值则设置为最大值
-    EEPROMTool.saveDataOne(0x15, BRIGHTNESS); // 设置亮度信息到EEPROM
+    bright = 15; // 超出最大值则设置为最大值
   }
-  latticeSetting.brightness = bright; // 设置屏幕亮度
+  if (save) // 判断是否保存亮度信息,如果不保存则只进行亮度设置
+  {
+    latticeSetting.brightness = bright;         // 设置屏幕亮度
+    EEPROMTool.saveDataOne(bright, BRIGHTNESS); // 设置亮度信息到EEPROM
+  }
+
   for (int i = 0; i < columnLength; i++)
   {
-    EEPROMTool.saveDataOne(bright, BRIGHTNESS);    // 设置亮度信息到EEPROM
-    lc.setIntensity(i, latticeSetting.brightness); // 设置亮度
+    lc.setIntensity(i, bright); // 设置亮度
   }
 }
 

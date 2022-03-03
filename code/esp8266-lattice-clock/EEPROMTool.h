@@ -8,10 +8,11 @@
 enum EEPROM_ADDRESS_ENUM
 {
 
-  REMEMBER_WIFI = 0x01, // 记住wifi内存地址
-  WIFI_MODE = 0x02,     // wifi模式内存地址
-  DIRECTION = 0x03,     // 屏幕显示方向内存地址
-  BRIGHTNESS = 0x04     // 屏幕亮度内存地址
+  REMEMBER_WIFI = 1, // 记住wifi内存地址
+  WIFI_MODE = 2,     // wifi模式内存地址
+  DIRECTION = 3,     // 屏幕显示方向内存地址
+  BRIGHTNESS = 4,    // 屏幕亮度内存地址
+  SLEEP_TIME = 5     // 从第5位到第9位来存睡眠时间
 };
 
 struct EEPROMTOOLS

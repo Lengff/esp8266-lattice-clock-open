@@ -40,7 +40,10 @@ private:
    */
   void initWifi();
 
-
+  /**
+   * @brief 计数器
+   *
+   */
   int timer;
 
 public:
@@ -65,7 +68,7 @@ public:
   void connWifi(Lattice lattice, PilotLight pilotLight);
 
   /**
-   * @brief 将wifi模式修改为STA模式
+   * @brief 启动热点模式
    *
    */
   void enableApMode();

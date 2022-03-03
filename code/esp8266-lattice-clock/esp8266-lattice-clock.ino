@@ -53,6 +53,105 @@ void setCountdown(uint8_t *data)
 }
 
 /**
+ * @brief 初始化休眠时间
+ *
+ */
+void initSleepTime()
+{
+  // 先从内存中加载
+  uint8_t *t = EEPROMTool.loadData(SLEEP_TIME, 5);
+  for (int i = 0; i < 5; i++)
+  {
+    sleepTime[i] = t[i];
+  }
+  free(t);
+}
+
+/**
+ * @brief 设置睡眠时间
+ *
+ * @param data
+ */
+void setSleepTime(uint8_t *data)
+{
+  // 这里的做法目前是比较简单的,data就是一个四位长度的数组,第0和1位表示开始时间的小时和分钟,第2和3位表示结束的小时和分钟
+  for (int i = 0; i < 5; i++)
+  {
+    sleepTime[i] = data[i];
+  }
+  EEPROMTool.saveData(data, SLEEP_TIME, 5); // 将数据设置EEPROM中去
+  // todo 这里为了交互友好,最好还是显示一个config ok 之类的提示
+}
+
+void sleepTimeLoop()
+{
+  Times times = datetimes.getTimes();
+  uint8_t starttime = sleepTime[0] * 100 + sleepTime[1]; // 开始时间
+  uint8_t endtime = sleepTime[2] * 100 + sleepTime[3];   // 结束时间
+  if (starttime == endtime)                              // 如果开始时间和结束时间是一样的话,就什么都不做
+  {
+    return;
+  }
+  uint8_t currtime = times.h * 100 + times.m; // 当前时间
+  if (starttime < endtime)                    // 如果开始时间小于结束时间,则只需要判断当前时间是否在开始时间和结束时间的区间范围内
+  {
+    if (currtime >= starttime && currtime < endtime) // 如果时间在休眠时间范围内则休眠
+    {
+      if (!isSleepMode)
+      {
+        isSleepMode = true;    // 标记进入睡眠模式
+        if (sleepTime[4] == 0) // 判断亮度是否为0,如果亮度为0的话,则熄灭屏幕
+        {
+          lattice.shutdown(true); // 休眠操作(目前就是把屏幕熄灭)
+        }
+        else
+        {
+          lattice.setBrightness(sleepTime[4], false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
+        }
+      }
+    }
+    else
+    {
+      if (isSleepMode)
+      {
+        // 这里避免出现误操作,每次都将屏幕点亮,将屏幕亮度设置到预设亮度
+        isSleepMode = false;                                             // 标记退出睡眠模式
+        lattice.shutdown(false);                                         // 退出休眠操作(目前就是把屏幕点亮)
+        lattice.setBrightness(lattice.latticeSetting.brightness, false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
+      }
+    }
+  }
+  else // 如果开始时间大于结束时间,表示表示当前时间在反向的范围内则不需要休眠
+  {
+    if (currtime >= endtime && currtime < starttime) // 如果时间在休眠时间范围内则休眠
+    {
+      if (isSleepMode)
+      {
+        // 这里避免出现误操作,每次都将屏幕点亮,将屏幕亮度设置到预设亮度
+        isSleepMode = false;                                             // 标记退出睡眠模式
+        lattice.shutdown(false);                                         // 退出休眠操作(目前就是把屏幕点亮)
+        lattice.setBrightness(lattice.latticeSetting.brightness, false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
+      }
+    }
+    else
+    {
+      if (!isSleepMode)
+      {
+        isSleepMode = true;    // 标记进入睡眠模式
+        if (sleepTime[4] == 0) // 判断亮度是否为0,如果亮度为0的话,则熄灭屏幕
+        {
+          lattice.shutdown(true); // 休眠操作(目前就是把屏幕熄灭)
+        }
+        else
+        {
+          lattice.setBrightness(sleepTime[4], false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
+        }
+      }
+    }
+  }
+}
+
+/**
  * @brief 重置时间
  * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
  * @param data
@@ -356,7 +455,7 @@ void handleUdpData()
     resetTime(udpdata.data); // 重置时间
     break;
   case 1:
-    lattice.setBrightness(udpdata.data[0]); // 设置亮度
+    lattice.setBrightness(udpdata.data[0], true); // 设置亮度
     break;
   case 2:
     power = udpdata.data[0]; // 切换功能
@@ -387,6 +486,9 @@ void handleUdpData()
     break;
   case 10:
     setCountdown(udpdata.data); // 设置倒计时
+    break;
+  case 11:
+    setSleepTime(udpdata.data); // 设置睡眠时间
     break;
   default:
     break;
@@ -431,13 +533,13 @@ void handlePower()
 
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(115200);                        // 初始化串口波特率
   initTouch();                                 // 初始化按键信息
   wifis.connWifi(lattice, pilotLight);         // 连接wifi
   udps.initudp();                              // 初始化UDP客户端
   pilotLight.dim();                            //正常进操作就熄灭指示灯
   httptoolticker.attach(5, updateBiliFstatus); // 每分钟更新一次bilibili粉丝数量
-  if (wifis.wifiMode == 0x00)
+  if (wifis.wifiMode == 0x00)                  // 如果wifi模式为连接wifi的模式则联网矫正时间
   {
     resetTime(displayData);  // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
     httptool.bilibiliFans(); // 刷新bilibili粉丝数量
@@ -446,6 +548,7 @@ void setup()
   {
     pilotLight.bright(); // 如果是热点模式的话,指示的LED灯常亮
   }
+  initSleepTime(); // 初始化休眠时间
 }
 
 void loop()
@@ -453,4 +556,5 @@ void loop()
   handleUdpData();
   touchLoop();
   handlePower();
+  sleepTimeLoop();
 }

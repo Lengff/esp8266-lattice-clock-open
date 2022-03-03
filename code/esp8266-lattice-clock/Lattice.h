@@ -284,7 +284,7 @@ public:
     /**
      * 设置显示亮度
      */
-    void setBrightness(uint8_t bright);
+    void setBrightness(uint8_t bright,bool save);
 
     /**
      * 设置显示方向

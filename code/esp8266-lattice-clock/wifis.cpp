@@ -28,18 +28,17 @@ void Wifis::initWifi()
 
 void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
 {
-  initWifi();
-  timer = 0; // 清零计数器
-  if (wifiMode == 0x01)
+  initWifi();           // 初始化wifi信息
+  timer = 0;            // 清零计数器
+  if (wifiMode == 0x01) // 模式为热点模式就不走连接wifi和wifi配网了
   {
     // 如果wifi模式为热点模式,则不进wifi连接和配网
     return;
-  }                                                     // 先从flash中加载账号密码
+  }
   if (EEPROMTool.loadDataOne(REMEMBER_WIFI) || usePass) // 如果记住wifi值不为0xfe表示存在WiFi账号密码等信息
   {
-    // 如果说有账号密码信息,那就直接用账号密码连接wifi
     Serial.println("start connect wifi ");
-    if (usePass)
+    if (usePass) // 判断是否使用代码中的wifi信息
     {
       WiFi.begin(WIFI_SSID, WIFI_PASSWD); // 使用固定的wifi信息
     }
@@ -55,8 +54,9 @@ void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
       delay(100);
       if (timer >= 600) // 如果计数器大于60次,表示超过一分钟,则说明一分钟都没有连接上wifi,就不连了
       {
-        timer = 0; // 清零计数器
-        break;     // 联网失败
+        timer = 0;      // 清零计数器
+        enableApMode(); // 联网失败进入到热点模式
+        break;          // 防止出问题还是break一下
       }
     }
     WiFi.setAutoConnect(true); // 设置自动连接
@@ -84,9 +84,9 @@ void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
       }
     }
   }
-  Serial.println("conn wifi successful");
-  delay(500); // 等几秒再进入系统
-  timer = 0;  // 清零计数器
+  Serial.println("conn wifi successful"); // 记录一下日志,避免一点都不知道有没有连上wifi
+  delay(500);                             // 等几秒再进入系统
+  timer = 0;                              // 清零计数器
 }
 
 void Wifis::enableApMode()
