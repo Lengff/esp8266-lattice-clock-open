@@ -119,12 +119,12 @@ void setup()
     powerBtn.attach(miotPowerState);                              // 注册开关按键
     brightSlider.attach(brightCallback);                          // 注册亮度调节
     directBtn.attach(directionCallback);                          // 注册方向按钮回到
-    powerSlider.attach(powerCallback);                            // 注册功能切换
-    BlinkerMIOT.attachPowerState(miotPowerState);                 // 注册屏幕开关的回调
-    BlinkerMIOT.attachBrightness(miotBright);                     // 注册亮度控制的回调
-    BlinkerMIOT.attachQuery(miotQuery);                           // 注册小爱同学语音状态查询
-    resetTime(displayData);                                       // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
-    httptool.bilibiliFans();                                      // 刷新bilibili粉丝数量
+    powerSlider.attach(powerCallback); // 
+    BlinkerMIOT.attachPowerState(miotPowerState); // 注册屏幕开关的回调
+    BlinkerMIOT.attachBrightness(miotBright);     // 注册亮度控制的回调
+    BlinkerMIOT.attachQuery(miotQuery);           // 注册小爱同学语音状态查询
+    resetTime(displayData);                       // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.bilibiliFans();                      // 刷新bilibili粉丝数量
   }
   else
   {
