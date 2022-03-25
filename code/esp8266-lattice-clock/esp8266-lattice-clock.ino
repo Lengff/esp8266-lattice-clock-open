@@ -1,534 +1,108 @@
-#include <ESP8266WiFi.h>
+#include "Main.h"
+#define BLINKER_WIFI
+#define BLINKER_MIOT_LIGHT
+#include <Blinker.h>
 
-#include "DateTimes.h"
-#include "EEPROMTool.h"
-#include "HttpTool.h"
-#include "Lattice.h"
-#include "Otas.h"
-#include <DS3231.h>
-#include <Ticker.h>
-#include <Wire.h>
+char auth[] = "";
 
-Ticker httptoolticker;
-HttpTool httptool;
-
-// 时间管理对象
-DateTimes datetimes = DateTimes();
-
-bool updateFansIf = false;
-
-void updateBiliFstatus() { updateFansIf = true; }
+// 新建组件对象
+BlinkerButton powerBtn("btn-power");         // 开关按键
+BlinkerButton directBtn("btn-direction");    // 方向按键
+BlinkerNumber temperNum("num-temperature");  // 温度回调
+BlinkerSlider brightSlider("slider_bright"); //亮度滑动条
+BlinkerSlider powerSlider("slider_power");   //功能滑动条
 
 /**
- * 订阅bilibili用户ID
- */
-void subBili(uint8_t *data)
-{
-  // 先将uint_8转成 long
-  long uid = 0;
-  for (int i = 0; i < 5; i++)
-  {
-    uid += data[i] << (i * 8);
-  }
-  // 在将uid保存到存储器中去
-  httptool.saveBuid(uid);
-  // 切换显示模式为bilibili显示
-  power = BILIFANS;
-  initStatus();
-}
-
-void setCountdown(uint8_t *data)
-{
-  // 先将uint_8转成 long
-  long timestamp = 0;
-  for (int i = 0; i < 5; i++)
-  {
-    timestamp += data[i] << (i * 8);
-  }
-  // 将倒计时时间戳保存起来
-  datetimes.saveCountdownTimestamp(timestamp);
-  // 切换显示模式为倒计时显示
-  power = COUNTDOWN;
-  initStatus();
-}
-
-/**
- * @brief 初始化休眠时间
+ * @brief 设置方向回调
  *
+ * @param state
  */
-void initSleepTime()
+void directionCallback(const String &state)
 {
-  // 先从内存中加载
-  uint8_t *t = EEPROMTool.loadData(SLEEP_TIME, 5);
-  for (int i = 0; i < 5; i++)
+  Serial.print("设置时钟方向:");
+  Serial.println(state);
+  uint8_t direction = 0;
+  if (state == BLINKER_CMD_ON)
   {
-    sleepTime[i] = t[i];
+    direction = 0;
+    directBtn.print("on"); // 反馈开关状态
   }
-  free(t);
+  else if (state == BLINKER_CMD_OFF)
+  {
+    direction = 1;
+    directBtn.print("off"); // 反馈开关状态
+  }
+  lattice.setDirection(direction); // 是否启用点阵屏幕
 }
 
 /**
- * @brief 设置睡眠时间
+ * @brief 设置亮度的回调
  *
- * @param data
+ * @param value
  */
-void setSleepTime(uint8_t *data)
+void brightCallback(int32_t value)
 {
-  // 这里的做法目前是比较简单的,data就是一个四位长度的数组,第0和1位表示开始时间的小时和分钟,第2和3位表示结束的小时和分钟
-  for (int i = 0; i < 5; i++)
-  {
-    sleepTime[i] = data[i];
-  }
-  EEPROMTool.saveData(data, SLEEP_TIME, 5); // 将数据设置EEPROM中去
-  // todo 这里为了交互友好,最好还是显示一个config ok 之类的提示
-}
-
-void sleepTimeLoop()
-{
-  Times times = datetimes.getTimes();
-  uint8_t starttime = sleepTime[0] * 100 + sleepTime[1]; // 开始时间
-  uint8_t endtime = sleepTime[2] * 100 + sleepTime[3];   // 结束时间
-  if (starttime == endtime)                              // 如果开始时间和结束时间是一样的话,就什么都不做
-  {
-    return;
-  }
-  uint8_t currtime = times.h * 100 + times.m; // 当前时间
-  if (starttime < endtime)                    // 如果开始时间小于结束时间,则只需要判断当前时间是否在开始时间和结束时间的区间范围内
-  {
-    if (currtime >= starttime && currtime < endtime) // 如果时间在休眠时间范围内则休眠
-    {
-      if (!isSleepMode)
-      {
-        isSleepMode = true;    // 标记进入睡眠模式
-        if (sleepTime[4] == 0) // 判断亮度是否为0,如果亮度为0的话,则熄灭屏幕
-        {
-          lattice.shutdown(true); // 休眠操作(目前就是把屏幕熄灭)
-        }
-        else
-        {
-          lattice.setBrightness(sleepTime[4], false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
-        }
-      }
-    }
-    else
-    {
-      if (isSleepMode)
-      {
-        // 这里避免出现误操作,每次都将屏幕点亮,将屏幕亮度设置到预设亮度
-        isSleepMode = false;                                             // 标记退出睡眠模式
-        lattice.shutdown(false);                                         // 退出休眠操作(目前就是把屏幕点亮)
-        lattice.setBrightness(lattice.latticeSetting.brightness, false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
-      }
-    }
-  }
-  else // 如果开始时间大于结束时间,表示表示当前时间在反向的范围内则不需要休眠
-  {
-    if (currtime >= endtime && currtime < starttime) // 如果时间在休眠时间范围内则休眠
-    {
-      if (isSleepMode)
-      {
-        // 这里避免出现误操作,每次都将屏幕点亮,将屏幕亮度设置到预设亮度
-        isSleepMode = false;                                             // 标记退出睡眠模式
-        lattice.shutdown(false);                                         // 退出休眠操作(目前就是把屏幕点亮)
-        lattice.setBrightness(lattice.latticeSetting.brightness, false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
-      }
-    }
-    else
-    {
-      if (!isSleepMode)
-      {
-        isSleepMode = true;    // 标记进入睡眠模式
-        if (sleepTime[4] == 0) // 判断亮度是否为0,如果亮度为0的话,则熄灭屏幕
-        {
-          lattice.shutdown(true); // 休眠操作(目前就是把屏幕熄灭)
-        }
-        else
-        {
-          lattice.setBrightness(sleepTime[4], false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
-        }
-      }
-    }
-  }
+  lattice.setBrightness(value, true); // 设置亮度
+  brightSlider.print(value);          // 将数据回调给组件
 }
 
 /**
- * @brief 重置时间
- * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
- * @param data
+ * @brief 功能切换的回调
+ *
+ * @param value
  */
-void resetTime(uint8_t *data)
+void powerCallback(int32_t value)
 {
-  long timestamp = 0;
-  if (wifis.wifiMode == 0x01)
-  {
-    // 先将uint_8转成 long
-    for (int i = 0; i < 5; i++)
-    {
-      timestamp += data[i] << (i * 8);
-    }
-    datetimes.setDateTimes(timestamp + 8 * 60 * 60);
-    initStatus();
-    power = POWER0;
-    powers[power] = 0;
-    return;
-  }
-  else
-  {
-    for (int i = 0; i < 50; i++) // 这里五次循环是为了只处理五次,五次都失败的话可能就是网络不好了
-    {
-      timestamp = udps.getNtpTimestamp();
-      lattice.showLongIcon(2); // 这里延迟两秒是因为过程太快了,交互体验不好
-      pilotLight.flashing();   // 校准时间LED闪烁
-      if (timestamp != 0)
-      {
-        datetimes.setDateTimes(timestamp);
-        initStatus();
-        power = POWER0;
-        powers[power] = 0;
-        return;
-      }
-      delay(100);
-    }
-  }
-}
-
-/**
- * 显示用户自定义的数据
- */
-void setUserData(uint8_t *data)
-{
-  for (int i = 0; i < 32; i++) // 切换用户自定义
-  {
-    lattice.latticeSetting.userData[i] = data[i];
-  }
-  power = CUSTOM;
-  powers[power] = 0;
+  power = value; // 切换功能
   initStatus();
+  powerSlider.print(value); // 将数据回调给组件
 }
 
 /**
-   显示时间
+   小爱同学接入方法 - 开关功能回调
 */
-void showTime(uint8_t showmode)
+void miotPowerState(const String &state)
 {
-  Times times = datetimes.getTimes();
-  if (times.s == powerFlag)
+  Serial.print("小爱语音设置的功能状态为:");
+  Serial.println(state);
+  uint8_t power = 0;
+  if (state == BLINKER_CMD_ON)
   {
-    return; // 如果秒钟数没有改变,则不执行方法
+    power = 0;
+    BlinkerMIOT.powerState("on");
+    powerBtn.print("on"); // 反馈开关状态
+    BlinkerMIOT.print();
   }
-  if (showmode == 0)
+  else if (state == BLINKER_CMD_OFF)
   {
-    powerFlag = times.s;
-    displayData[0] = times.s;
-    displayData[1] = times.m;
-    displayData[2] = times.h;
-    lattice.showTime3(displayData);
+    power = 1;
+    BlinkerMIOT.powerState("off");
+    powerBtn.print("off"); // 反馈开关状态
+    BlinkerMIOT.print();
   }
-  else if (showmode == 1)
-  {
-    powerFlag = times.s;
-    displayData[0] = times.s;
-    displayData[1] = times.m;
-    displayData[2] = times.h;
-    lattice.showTime(displayData);
-  }
-  else
-  {
-    if (times.s == 0 || powerFlag == -1)
-    {
-      displayData[0] = times.m % 10;
-      displayData[1] = times.m / 10;
-      displayData[2] = times.h % 10;
-      displayData[3] = times.h / 10;
-      lattice.showTime2(displayData);
-    }
-    powerFlag = times.s;
-    if (times.s % 2 == 0)
-    {
-      lattice.reversalLR(3);
-    }
-    else
-    {
-      lattice.reversalUD(3);
-    }
-  }
+  lattice.shutdown(power); // 是否启用点阵屏幕
 }
 
 /**
- * 显示倒计时
- */
-void showCountDown()
-{
-  bool showmode = true, minutechange = false;
-  long countdown = datetimes.getCountdownTimestamp();
-  long timestamp = datetimes.getTimestamp() - 8 * 3600;
-  if (countdown - timestamp == powerFlag2 || powerFlag2 <= 0)
-  {
-    // 时间没有发生改变,则跳过
-    return;
-  }
-  // 倒计时时间戳 - 当前时间戳时间小于一天则 按 时分秒 来进行倒计时
-  if ((countdown - timestamp) < (24 * 3600))
-  {
-    showmode = false;
-    minutechange = true;
-    // 倒计时小于一天,则使用时分秒的显示模式
-    if ((countdown - timestamp) == powerFlag2)
-    {
-      // 这里表示秒钟数没有发生改变
-      return;
-    }
-    if (((countdown - timestamp) / 3600) != (powerFlag2 / 3600))
-    {
-      // 倒计时时钟发生改变
-      lattice.reset();
-      displayData[0] = 0;
-      displayData[1] = 1;
-      displayData[2] = 2;
-    }
-  }
-  else
-  {
-    showmode = true;
-    // 这里判断天数是否发生改变,如果天数发生改变则需要重置一下显示
-    if (((countdown - timestamp) / 3600 / 24) != (powerFlag2 / 3600 / 24))
-    {
-      lattice.reset();
-      // 倒计时日发生改变
-      displayData[0] = 0;
-      displayData[1] = 1;
-      displayData[2] = 2;
-    }
-    // 这里判断分钟数是否发生改变,如果分钟数发生改变,则需要刷新显示
-    if (((countdown - timestamp) / 60) != (powerFlag2 / 60))
-    {
-      // 这里表示分钟数值发生改变
-      minutechange = true;
-    }
-  }
-  powerFlag2 = (countdown - timestamp) < 1 ? 0 : (countdown - timestamp);
-  lattice.showCountDownTime(powerFlag2, displayData, showmode, minutechange);
-  for (int i = 0; i < 3; i++)
-  {
-    displayData[i] = displayData[i] == 6 ? 1 : ++displayData[i];
-  }
-}
-
-/**
-   显示日期
+   小爱同学接入方法 - 设置亮度
 */
-void showDate(uint8_t showmode)
+void miotBright(const String &bright)
 {
-  Dates dates = datetimes.getDates();
-  if (dates.d == powerFlag)
-  {
-    return; // 如果天数没有发生改变，则不更新时间显示
-  }
-  powerFlag = dates.d;
-  if (showmode == 0)
-  {
-    displayData[3] = dates.y / 100;
-    displayData[2] = dates.y % 100;
-    displayData[1] = dates.m;
-    displayData[0] = dates.d;
-    lattice.showLongNumber(displayData);
-  }
-  else if (showmode == 1)
-  {
-    displayData[3] = dates.y / 100;
-    displayData[2] = dates.y % 100;
-    displayData[1] = dates.m;
-    displayData[0] = dates.d;
-    lattice.showDate3(displayData);
-  }
-  else
-  {
-    displayData[3] = dates.m / 10;
-    displayData[2] = dates.m % 10;
-    displayData[1] = dates.d / 10;
-    displayData[0] = dates.d % 10;
-    lattice.showDate2(displayData);
-  }
+  Serial.print("小爱语音设置的亮度为:");
+  Serial.println(bright.toInt());
+  lattice.setBrightness(bright.toInt() / 100 * 16, true); // 设置亮度
+  BlinkerMIOT.brightness(bright.toInt());
+  brightSlider.print((int)bright.toInt() / 100 * 16); // 将数据回调给组件
+  BlinkerMIOT.print();
 }
 
 /**
-   显示温度
-   由于这个温度显示不是很准确,所以我也就没有花很多心思来搞这个,就简单弄一个显示就完事了
+   小爱同学接入方法 - 查询状态
 */
-void showTemperature()
+void miotQuery(int32_t queryCode)
 {
-  int t = datetimes.getTemperature();
-  if (t == powerFlag)
-  {
-    // 温度没有发生改变则忽略
-    return;
-  }
-  powerFlag = t;
-  lattice.reset();
-  displayData[3] = 0;
-  displayData[2] = 0x00;
-  displayData[1] = t / 100;
-  displayData[0] = t % 100;
-  lattice.showTemperature(displayData);
-}
-
-/**
- * 显示bilibili粉丝数量
- */
-void showBiliFans()
-{
-  if (updateFansIf) // 判断是否需要更新bilibili粉丝数量
-  {
-    httptool.bilibiliFans(); // 每五秒获取一次bilibili粉丝信息
-    updateFansIf = false;    // 重置状态
-  }
-  Times times = datetimes.getTimes();
-  if (displayData[0] != times.s && powerFlag < 99999)
-  {
-    displayData[0] = times.s; // 这里由于没有缓存数组了,所以就用这个缓存数组
-    lattice.lightning(3);
-  }
-
-  long fans = httptool.fans;
-  if (fans == powerFlag)
-  {
-    return;
-  }
-  lattice.reset();
-  powerFlag = fans;
-  for (int i = 0; i < 4; i++) // 将千万的数字分解成四个数组
-  {
-    displayData[i] = fans % 100;
-    fans = fans / 100;
-  }
-  if (powerFlag >= 99999)
-  {
-    lattice.showLongNumber(displayData); // 如果粉丝数量大于这个数量时,就显示全部的粉丝数量
-  }
-  else
-  {
-    lattice.showNumAndIcon(2, displayData); // 如果粉丝数量不大于那个数量时,就显示图标加数量
-  }
-}
-
-/**
- * 显示用户自定数据
- */
-void showUserData(uint8_t showmode)
-{
-  if (showmode == 0)
-  {
-    lattice.showUserData(showmode); // 优先模式
-    return;
-  }
-  if (millis() - powerFlag < 100 + (lattice.latticeSetting.speed * 10)) // 如果当前时间减上次刷新时间小于用户设置的速度,则不刷新
-  {
-    return; // 时间间隔小于100ms就不执行
-  }
-  powerFlag = millis();
-  lattice.showUserData(showmode); // 刷新显示内容
-}
-
-/**
- * 重置系统，删除flash中的信息
- */
-void resetsystem()
-{
-  EEPROMTool.clearAll(); // 删除EEPRON信息
-  ESP.restart();         // 重启系统
-}
-
-/**
- * 处理接受到的UDP数据
- */
-void handleUdpData()
-{
-  Udpdata udpdata = udps.userLatticeLoop(lattice.latticeSetting, power, powers[power], version);
-  if (udpdata.lh < 1) // 数据长度小于1则表示没有接收到任何数据
-  {
-    return; // 没有收到任何UDP数据
-  }
-  pilotLight.flashing(100); // 每次接收到UDP数据的时候都闪烁一下LED灯
-  switch (udpdata.te)       // 判断UDP数据类型
-  {
-  case 0:
-    resetTime(udpdata.data); // 重置时间
-    break;
-  case 1:
-    lattice.setBrightness(udpdata.data[0], true); // 设置亮度
-    break;
-  case 2:
-    power = udpdata.data[0]; // 切换功能
-    initStatus();
-    break;
-  case 3:
-    powers[power] = udpdata.data[0]; // 切换功能显示样式
-    initStatus();
-    break;
-  case 4:
-    subBili(udpdata.data); // 订阅BIlibiliUID
-    break;
-  case 5:
-    lattice.shutdown(udpdata.data[0]); // 是否启用点阵屏幕
-    break;
-  case 6:
-    lattice.setDirection(udpdata.data[0]); // 切换显示方向
-    break;
-  case 7:
-    setUserData(udpdata.data); // 设置用户数据
-    break;
-  case 8:
-    lattice.latticeSetting.speed = udpdata.data[0]; // 设置动画速度
-    power = CUSTOM;
-    break;
-  case 9:
-    updateOta((int)udpdata.data[0]); // OTA 升级
-    break;
-  case 10:
-    setCountdown(udpdata.data); // 设置倒计时
-    break;
-  case 11:
-    setSleepTime(udpdata.data); // 设置睡眠时间
-    break;
-  default:
-    break;
-  }
-}
-
-/**
- * 功能处理
- */
-void handlePower()
-{
-  switch (power) // 显示数据模式
-  {
-  case POWER0:
-    showTime(powers[power]); // 显示时间
-    break;
-  case POWER1:
-    showDate(powers[power]); // 显示日期
-    break;
-  case POWER2:
-    showTemperature(); // 显示温度
-    break;
-  case BILIFANS:
-    showBiliFans(); // 显示bilibili粉丝数量
-    break;
-  case CUSTOM:
-    showUserData(powers[power]); // 显示用户自定义的数据
-    break;
-  case COUNTDOWN:
-    showCountDown(); // 显示倒计时
-    break;
-  case RESET:
-    resetsystem(); // 重置系统
-    break;
-  case RESETTIME:
-    resetTime(displayData); // 重置时间,这里是随便传的一个参数,不想重新声明参数
-    break;
-  default:
-    break; // 默认不做任何处理
-  }
+  Serial.print("小爱语音查询状态代码:");
+  Serial.println(queryCode);
 }
 
 void setup()
@@ -541,8 +115,16 @@ void setup()
   httptoolticker.attach(5, updateBiliFstatus); // 每分钟更新一次bilibili粉丝数量
   if (wifis.wifiMode == 0x00)                  // 如果wifi模式为连接wifi的模式则联网矫正时间
   {
-    resetTime(displayData);  // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
-    httptool.bilibiliFans(); // 刷新bilibili粉丝数量
+    Blinker.begin(auth, WiFi.SSID().c_str(), WiFi.psk().c_str()); // 初始化Blinker 这里只有在连接wifi成功的情况下才能用
+    powerBtn.attach(miotPowerState);                              // 注册开关按键
+    brightSlider.attach(brightCallback);                          // 注册亮度调节
+    directBtn.attach(directionCallback);                          // 注册方向按钮回到
+    powerSlider.attach(powerCallback);                            // 注册功能切换
+    BlinkerMIOT.attachPowerState(miotPowerState);                 // 注册屏幕开关的回调
+    BlinkerMIOT.attachBrightness(miotBright);                     // 注册亮度控制的回调
+    BlinkerMIOT.attachQuery(miotQuery);                           // 注册小爱同学语音状态查询
+    resetTime(displayData);                                       // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.bilibiliFans();                                      // 刷新bilibili粉丝数量
   }
   else
   {
@@ -557,4 +139,6 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
+  // temperNum.print(datetimes.getTemperature());
+  Blinker.run();
 }
