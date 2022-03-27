@@ -6,7 +6,7 @@
 
 ### 1. 点阵时钟立创PCB工程已经完成,开源地址为: [ESP8266多功能点阵时钟 - PCB制作分享](https://oshwhub.com/Lengff/lattice-clock)
 
-### 2. 新增了一个接入点灯科技版本的代码，具体说明请参考这里：[点灯科技版本说明](./blinker/readme.md)
+### 2. 新增了一个接入点灯科技版本的代码，具体说明请参考这里：[点灯科技版本说明](/blinker/readme.md)
 
 
 # 简介
