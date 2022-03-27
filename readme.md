@@ -4,7 +4,9 @@
 
 # 更新
 
-### 点阵时钟立创PCB工程已经完成,开源地址为: [ESP8266多功能点阵时钟 - PCB制作分享](https://oshwhub.com/Lengff/lattice-clock)
+### 1. 点阵时钟立创PCB工程已经完成,开源地址为: [ESP8266多功能点阵时钟 - PCB制作分享](https://oshwhub.com/Lengff/lattice-clock)
+
+### 2. 新增了一个接入点灯科技版本的代码，具体说明请参考这里：[点灯科技版本说明](./blinker/readme.md)
 
 
 # 简介
@@ -188,13 +190,8 @@ NodeMcu有好多种规格，比较常见的是CP2102串口芯片和CH340串口�
 #### `NodeMcu`和`DS3231模块`接线
 
 - VCC → 3.3V (这里不用接5v，低电压更安全)
-
 - GND → GND
-
-- DIN →  D7
-
 - SDA  → D2
-
 - SCL →  D1
 
 #### `NodeMcu`和`单路触摸模块`接线
