@@ -16,7 +16,7 @@
 
 ![image-20220325164712839](/tree/master/blinker/image-20220325164712839.png)
 
-![image-20220325164719116](/image-20220325164719116.png)
+![image-20220325164719116](/tree/master/blinker/image-20220325164719116.png)
 
 ### 2. 修改代码
 
