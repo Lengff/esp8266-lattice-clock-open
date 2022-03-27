@@ -3,7 +3,7 @@
 #define BLINKER_MIOT_LIGHT
 #include <Blinker.h>
 
-char auth[] = "0b6921f916bd";
+char auth[] = "";
 
 // 新建组件对象
 BlinkerButton powerBtn("btn-power");         // 开关按键
