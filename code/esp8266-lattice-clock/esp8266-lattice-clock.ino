@@ -9,6 +9,13 @@
 #include <Ticker.h>
 #include <Wire.h>
 
+/**
+ * 手动累加时间戳任务
+ */
+Ticker timestampticker;
+/**
+ * 每五秒钟处理一次http请求标志
+ */
 Ticker httptoolticker;
 HttpTool httptool;
 
@@ -17,6 +24,13 @@ DateTimes datetimes = DateTimes();
 
 bool updateFansIf = false;
 
+/**
+ * 时间戳秒数增加
+ */
+void timestampAdd()
+{
+  datetimes.currtimestamp++;
+}
 void updateBiliFstatus() { updateFansIf = true; }
 
 /**
@@ -539,6 +553,7 @@ void setup()
   udps.initudp();                              // 初始化UDP客户端
   pilotLight.dim();                            //正常进操作就熄灭指示灯
   httptoolticker.attach(5, updateBiliFstatus); // 每分钟更新一次bilibili粉丝数量
+  timestampticker.attach(1, timestampAdd);     // 每一秒叠加一次秒数
   if (wifis.wifiMode == 0x00)                  // 如果wifi模式为连接wifi的模式则联网矫正时间
   {
     resetTime(displayData);  // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数

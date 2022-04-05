@@ -1,9 +1,9 @@
 #ifndef DATETIMES_H
 #define DATETIMES_H
 
+#include "EEPROMTool.h"
 #include <DS3231.h>
 #include <Wire.h>
-#include "EEPROMTool.h"
 
 struct Times
 {
@@ -81,6 +81,11 @@ public:
    * 保存倒计时的时间戳
    */
   void saveCountdownTimestamp(long timestamp);
+
+  /**
+   * 当前时间戳，冗余做法，即时钟芯片没有或者不生效时，使用系统的时间戳来反馈时间
+   */
+  long currtimestamp = 946684800 - (8 * 60 * 60);
 };
 
 #endif
