@@ -1,23 +1,32 @@
 #include "Wifis.h"
-
-// 连接您的WIFI SSID和密码 (调试模式可使用此方式连接wifi)
-#define WIFI_SSID "wifiname"
-#define WIFI_PASSWD "password"
-
-bool usePass = false; // 如果需要使用上面的密码,请将值  `false` 改成 `true`
+#include "ConfigWifiHtml.h"
 
 Wifis::Wifis()
 {
+}
+
+Wifis::Wifis(Lattice *latticeobj, PilotLight *pilotLightobj)
+{
+  lattice = latticeobj;
+  pilotLight = pilotLightobj;
+}
+
+void Wifis::wifiloop()
+{
+  if (wifiMode == 0x01) // 这里只有在热点模式下才进行此操作
+  {
+    server.handleClient();
+    dnsServer.processNextRequest();
+  }
 }
 
 void Wifis::initWifi()
 {
   if (EEPROMTool.loadDataOne(WIFI_MODE) == 0x01) // 如果取到的数据为1时表示启动了热点模式
   {
-    WiFi.mode(WIFI_AP);                      // 设置wifi模式为热点模式
-    wifiMode = 0x01;                         // 标记当前wifi模式
-    WiFi.softAP(ssid, password);             // 设置wifi热点账号密码
     EEPROMTool.saveDataOne(0x00, WIFI_MODE); // 处理完热点模式以后随机将默认模式改为wifi模式
+    wifiMode = 0x01;                         // 标记当前wifi模式
+    initWebServer();                         // 初始化web服务
   }
   else
   {
@@ -26,33 +35,106 @@ void Wifis::initWifi()
   }
 }
 
-void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
+/**
+ * @brief 处理主页请求
+ *
+ */
+void Wifis::handleIndex()
+{
+  server.send(200, "text/html", page_html);
+}
+
+/**
+ * @brief 处理配网请求
+ *
+ */
+void Wifis::handleConfigWifi()
+{
+  WiFi.persistent(true);                                             //首次在flash中保存WiFi配置-可选
+  WiFi.begin(server.arg("ssid").c_str(), server.arg("pwd").c_str()); // 使用配网获取的wifi信息
+  WiFi.setAutoConnect(true);                                         // 设置自动连接
+  EEPROMTool.saveDataOne(0XFE, REMEMBER_WIFI);                       // 记住wifi密码
+  int count = 0;
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    count++;
+    if (count > 40) //如果20秒内没有连上，就开启Web配网 可适当调整这个时间
+    {
+      server.send(200, "text/html", "wifi连接失败,请检查密码后重试。"); //返回保存成功页面
+      break;                                                            //跳出 防止无限初始化
+    }
+    Serial.println(".");
+  }
+  if (WiFi.status() == WL_CONNECTED) //如果连接上 就输出IP信息
+  {
+    Serial.print("WIFI Connected:");                              //打印esp8266的IP地址
+    Serial.println(WiFi.localIP());                               //打印esp8266的IP地址
+    server.send(200, "text/html", "wifi连接成功,即将重启设备。"); //返回保存成功页面
+    delay(3000);                                                  // 等待三秒
+    ESP.reset();                                                  // 重启设备
+  }
+}
+
+/**
+ * @brief 处理扫描wifi请求
+ *
+ */
+void Wifis::handleWifiList()
+{
+  int n = WiFi.scanNetworks(); //开始同步扫描，将返回值存放在变量n中
+  if (n > 0)                   // 只有有数据的时候才处理
+  {
+    char wifilist[640] = {0}; // 返回给网页的数据
+    Serial.println("sacn wifi.");
+    for (int i = 0; i < 20; ++i) //开始逐个打印扫描到的
+    {
+      sprintf(wifilist, "%s%s%s", wifilist, WiFi.SSID(i).c_str(), ","); // 组装信息返回给接口
+    }
+    Serial.print(wifilist);                  // 打印一下日志
+    server.send(200, "text/html", wifilist); //返回保存成功页面
+    return;                                  // 结束这里的操作
+  }
+  Serial.println("no any wifi.");           // 打印没有任何wifi日志
+  server.send(200, "text/html", ".nodata"); //返回保存成功页面
+}
+
+void Wifis::initWebServer()
+{
+  WiFi.mode(WIFI_AP_STA);                                     // 设置模式为wifi热点模式
+  WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0)); //初始化AP模式
+  WiFi.softAP(AP_NAME, NULL, 1, 0, 4);                        //初始化AP模式
+  server.on("/", HTTP_GET, handleIndex);                      //设置主页回调函数
+  server.on("/configwifi", HTTP_GET, handleConfigWifi);       //设置Post请求回调函数
+  server.on("/wifilist", HTTP_GET, handleWifiList);           // 设置获取wifi列表回调函数
+  server.onNotFound(handleIndex);                             //设置无法响应的http请求的回调函数
+  server.begin();                                             //启动WebServer
+  Serial.println("WebServer started!");
+  dnsServer.start(53, "*", apIP);
+}
+
+void Wifis::connWifi()
 {
   initWifi();           // 初始化wifi信息
-  timer = 0;            // 清零计数器
+  int timer = 0;        // 清零计数器
   if (wifiMode == 0x01) // 模式为热点模式就不走连接wifi和wifi配网了
   {
-    // 如果wifi模式为热点模式,则不进wifi连接和配网
-    return;
+    return; // 如果wifi模式为热点模式,则不进wifi连接和配网
   }
-  if (EEPROMTool.loadDataOne(REMEMBER_WIFI) || usePass) // 如果记住wifi值不为0xfe表示存在WiFi账号密码等信息
+  if (EEPROMTool.loadDataOne(REMEMBER_WIFI) == 0XFE) // 如果记住wifi值不为0xfe表示存在WiFi账号密码等信息
   {
     Serial.println("start connect wifi ");
-    if (usePass) // 判断是否使用代码中的wifi信息
-    {
-      WiFi.begin(WIFI_SSID, WIFI_PASSWD); // 使用固定的wifi信息
-    }
-    else
-    {
-      WiFi.begin(WiFi.SSID().c_str(), WiFi.psk().c_str()); // 使用配网获取的wifi信息
-    }
+    Serial.println(WiFi.SSID().c_str());
+    Serial.println(WiFi.psk().c_str());
+    WiFi.begin(WiFi.SSID().c_str(), WiFi.psk().c_str()); // 使用配网获取的wifi信息
+    // WiFi.begin("你的wifiSSID", "你的wifi密码"); // 使用固定的wifi信息
     while (WiFi.status() != WL_CONNECTED)
     {
       timer++;
-      pilotLight.flashing();   // 闪烁LED灯
-      lattice.showLongIcon(0); // 显示连接wifi图案
+      pilotLight->flashing();   // 闪烁LED灯
+      lattice->showLongIcon(0); // 显示连接wifi图案
       delay(100);
-      if (timer >= 600) // 如果计数器大于60次,表示超过一分钟,则说明一分钟都没有连接上wifi,就不连了
+      if (timer >= 300) // 如果计数器大于60次,表示超过一分钟,则说明一分钟都没有连接上wifi,就不连了
       {
         timer = 0;      // 清零计数器
         enableApMode(); // 联网失败进入到热点模式
@@ -63,30 +145,31 @@ void Wifis::connWifi(Lattice lattice, PilotLight pilotLight)
   }
   else
   {
-    WiFi.beginSmartConfig(); // 没有账号密码则进入到配网模式
-    Serial.println("smart config wifi ");
-    while (1)
-    {
-      timer++;
-      lattice.showLongIcon(1); // 显示配网中图案信息
-      pilotLight.flashing();   // 闪烁LED灯
-      delay(500);              // 等待半秒钟
-      if (timer >= 20)         // 如果配网次数超过20此,则重启系统,重新配网
-      {
-        ESP.restart(); // 重启系统
-        return;
-      }
-      if (WiFi.smartConfigDone()) // 配网成功
-      {
-        WiFi.setAutoConnect(true);                   // 设置自动连接
-        EEPROMTool.saveDataOne(true, REMEMBER_WIFI); // 记住wifi密码
-        break;
-      }
-    }
+    enableApMode();
+    // WiFi.beginSmartConfig(); // 没有账号密码则进入到配网模式
+    // Serial.println("smart config wifi ");
+    // while (1)
+    // {
+    // timer++;
+    // lattice.showLongIcon(1); // 显示配网中图案信息
+    // pilotLight.flashing();   // 闪烁LED灯
+    // delay(500);              // 等待半秒钟
+    // if (timer >= 20)         // 如果配网次数超过20此,则重启系统,重新配网
+    // {
+    //   ESP.restart(); // 重启系统
+    //   return;
+    // }
+    // if (WiFi.smartConfigDone()) // 配网成功
+    // {
+    //   WiFi.setAutoConnect(true);                   // 设置自动连接
+    //   EEPROMTool.saveDataOne(true, REMEMBER_WIFI); // 记住wifi密码
+    //   break;
+    // }
+    // wifiloop();
+    // }
   }
   Serial.println("conn wifi successful"); // 记录一下日志,避免一点都不知道有没有连上wifi
   delay(500);                             // 等几秒再进入系统
-  timer = 0;                              // 清零计数器
 }
 
 void Wifis::enableApMode()

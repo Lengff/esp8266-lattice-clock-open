@@ -29,7 +29,11 @@ void HttpTool::bilibiliFans()
   }
   espClient.end();
 }
-
+/**
+ * @brief 保存bilibili的UID到EEPROM
+ *
+ * @param uid
+ */
 void HttpTool::saveBuid(long uid)
 {
   uint8_t arr[5];
@@ -41,6 +45,11 @@ void HttpTool::saveBuid(long uid)
   EEPROMTool.saveData(arr, 97, 5);
 }
 
+/**
+ * @brief 从EEPROM中加载bilibili的UID
+ *
+ * @return long
+ */
 long HttpTool::loadBuid()
 {
   long uid = 0;

@@ -2,6 +2,12 @@
 
 Lattice::Lattice() { init(); }
 
+Lattice::Lattice(OneButton *onebutton)
+{
+  btn = onebutton;
+  init();
+}
+
 void Lattice::init()
 {
   latticeSetting.direction = EEPROMTool.loadDataOne(DIRECTION);   // 从eeprom中获取屏幕方向
@@ -534,7 +540,7 @@ void Lattice::showTime(uint8_t *arr)
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    delay(80);
+    delayTime(80);
   }
 }
 
@@ -591,7 +597,7 @@ void Lattice::showTime2(uint8_t *arr)
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    delay(80);
+    delayTime(80);
   }
 }
 
@@ -671,7 +677,7 @@ void Lattice::showTime3(uint8_t *arr)
     data[1][2] = (data[1][2] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
     data[1][4] = (data[1][4] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
     refreshLed();
-    delay(50);
+    delayTime(50);
   }
 }
 
@@ -761,7 +767,7 @@ void Lattice::showCountDownTime(long remain, uint8_t *arr, bool showmode, bool m
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff(mfs);
-      delay(80);
+      delayTime(80);
     }
   }
   else
@@ -788,7 +794,7 @@ void Lattice::showLongNumber(uint8_t *arr)
     for (int i = 0; i < rowLength; i++)
     {
       downMoveBuff();
-      delay(80);
+      delayTime(80);
     }
   }
 }
@@ -839,7 +845,7 @@ void Lattice::showNumAndIcon(uint8_t no, uint8_t *arr)
     for (int i = 0; i < rowLength; i++)
     {
       downMoveBuff(mfs);
-      delay(80);
+      delayTime(80);
     }
   }
 }
@@ -899,7 +905,7 @@ void Lattice::showDate2(uint8_t *arr)
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    delay(80);
+    delayTime(80);
   }
 }
 
@@ -935,7 +941,7 @@ void Lattice::showDate3(uint8_t *arr)
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      delay(80);
+      delayTime(80);
     }
   }
 }
@@ -974,7 +980,7 @@ void Lattice::showTemperature(uint8_t *arr)
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      delay(80);
+      delayTime(80);
     }
   }
 }
@@ -1061,7 +1067,7 @@ void Lattice::showOtaUpdate(uint8_t num)
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      delay(50);
+      delayTime(50);
     }
   }
   else
@@ -1075,5 +1081,18 @@ void Lattice::showOtaUpdate(uint8_t num)
     }
     free(tmp);
     refreshLed();
+  }
+}
+
+void Lattice::delayTime(int ms)
+{
+  int timeFlag = millis();
+  while (true)
+  {
+    if (millis() - timeFlag >= ms)
+    {
+      break;
+    }
+    btn->tick();
   }
 }

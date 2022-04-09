@@ -4,35 +4,45 @@
 #include "EEPROMTool.h"
 #include "Lattice.h"
 #include "PilotLight.h"
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <cstring>
 
-// wifi热点的账号密码
 #ifndef APSSID
-#define APSSID "lattice-clock"
-#define APPSK "12345678"
+#define APSSID "lattice-clock-ap" // wifi热点的账号密码
 #endif
+
+static ESP8266WebServer server(80);    // 创建dnsServer实例
+static DNSServer dnsServer;            // dnsServer
+static IPAddress apIP(192, 168, 4, 1); // esp8266-AP-IP地址
 
 class Wifis
 {
 private:
   /**
+   * @brief 显示对象
+   *
+   */
+  Lattice *lattice;
+
+  /**
+   * @brief 状态指示灯对象
+   *
+   */
+  PilotLight *pilotLight;
+
+  /**
+   * @brief wifi名字
+   *
+   */
+  const char *AP_NAME = APSSID;
+
+  /**
    * @brief 是否记住wifi密码
    *
    */
-  bool rememberWifiPwd = true;
-
-  /**
-   * @brief 固定设备热点的SSID
-   *
-   */
-  const char *ssid = APSSID;
-
-  /**
-   * @brief 固定设备热点的密码
-   *
-   */
-  const char *password = APPSK;
+  bool rememberWifiPwd = 0X00;
 
   /**
    * @brief 初始化wifi
@@ -41,10 +51,10 @@ private:
   void initWifi();
 
   /**
-   * @brief 计数器
+   * @brief 初始化web服务
    *
    */
-  int timer;
+  void initWebServer();
 
 public:
   /**
@@ -52,6 +62,14 @@ public:
    *
    */
   Wifis();
+
+  /**
+   * @brief 构造函数
+   *
+   * @param lattice
+   * @param pilotLight
+   */
+  Wifis(Lattice *latticeobj, PilotLight *pilotLightobj);
 
   /**
    * @brief wifi模式 0x00: 连接wifi模式(STA)  0x01: wifi热点模式(AP)
@@ -62,15 +80,37 @@ public:
   /**
    * @brief 连接wifi
    *
-   * @param lattice 点阵显示对象
-   * @param pilotLight LED显示对象
    */
-  void connWifi(Lattice lattice, PilotLight pilotLight);
+  void connWifi();
 
   /**
    * @brief 启动热点模式
    *
    */
   void enableApMode();
+
+  /**
+   * @brief wifi轮循方法
+   *
+   */
+  void wifiloop();
+
+  /**
+   * @brief 处理主页请求
+   *
+   */
+  static void handleIndex();
+
+  /**
+   * @brief 处理配网请求
+   *
+   */
+  static void handleConfigWifi();
+
+  /**
+   * @brief 处理扫描wifi请求
+   *
+   */
+  static void handleWifiList();
 };
 #endif

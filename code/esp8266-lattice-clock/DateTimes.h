@@ -19,12 +19,25 @@ struct Dates
   uint8_t d;
 };
 
+/**
+ * 当前时间戳，冗余做法，即时钟芯片没有或者不生效时，使用系统的时间戳来反馈时间
+ */
+static long currtimestamp = 0;
+
 class DateTimes
 {
 private:
   bool h12Flag, pmFlag, century = false;
-  DS3231 ds3231;
 
+  /**
+   * @brief 初始化DS3231
+   *
+   */
+  DS3231 ds3231;
+  /**
+   * @brief
+   *
+   */
   DateTime datetime;
 
   /**
@@ -45,6 +58,10 @@ public:
    */
   DateTimes();
 
+  /**
+   * @brief 初始化
+   *
+   */
   void initDateTimes();
 
   /**
@@ -83,9 +100,10 @@ public:
   void saveCountdownTimestamp(long timestamp);
 
   /**
-   * 当前时间戳，冗余做法，即时钟芯片没有或者不生效时，使用系统的时间戳来反馈时间
+   * @brief 时间戳++
+   *
    */
-  long currtimestamp = 946684800 - (8 * 60 * 60);
+  static void timestampAdd();
 };
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "DateTimes.h"
 #include "Lattice.h"
+#include "PilotLight.h"
 #include <DS3231.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -22,8 +23,22 @@ struct Udpdata
 class Udps
 {
 private:
-  long timeFlag = 0;
+  /**
+   * @brief 显示对象
+   *
+   */
+  Lattice *lattice;
 
+  /**
+   * @brief 状态指示灯对象
+   *
+   */
+  PilotLight *pilotLight;
+  /**
+   * @brief 操作时间的对象
+   *
+   */
+  DateTimes *datetimes;
   /**
    * @brief NTP服务器网址
    */
@@ -56,13 +71,16 @@ private:
 
 public:
   /**
-   * @brief 是否
-   */
-  bool isSetTime;
-  /**
    * @brief构造函数
    */
   Udps();
+
+  /**
+   * @brief 构造函数
+   *
+   * @param datetimes
+   */
+  Udps(DateTimes *datetimesobj, Lattice *latticeobj, PilotLight *pilotLightobj);
 
   /**
    * @brief 初始化UDP信息
@@ -76,9 +94,15 @@ public:
   long getNtpTimestamp();
 
   /**
+   * @brief 更新时间
+   *
+   */
+  void updateTime();
+
+  /**
    * @brief接收自定义UPD协议的数据
    */
-  Udpdata userLatticeLoop(LatticeSetting latticeSetting, uint8_t power, uint8_t mode, uint8_t version);
+  Udpdata userLatticeLoop(uint8_t power, uint8_t mode, uint8_t version);
 };
 
 #endif

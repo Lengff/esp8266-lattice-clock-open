@@ -1,8 +1,9 @@
 #ifndef LATTICE_H
 #define LATTICE_H
 
-#include <LedControl.h>
 #include "EEPROMTool.h"
+#include <LedControl.h>
+#include <OneButton.h>
 
 const uint8_t rowLength = 8;
 const uint8_t columnLength = 4;
@@ -163,6 +164,8 @@ struct LatticeSetting
 class Lattice
 {
 private:
+    OneButton *btn;
+
     /**
      * lc对象
      */
@@ -173,6 +176,10 @@ private:
      */
     int latticeNums;
 
+    /**
+     * @brief
+     *
+     */
     int tempindex = 3;
 
     /**
@@ -267,6 +274,11 @@ public:
     Lattice();
 
     /**
+     * 构造函数
+     */
+    Lattice(OneButton *onebutton);
+
+    /**
      *  初始化
      */
     void init();
@@ -284,7 +296,7 @@ public:
     /**
      * 设置显示亮度
      */
-    void setBrightness(uint8_t bright,bool save);
+    void setBrightness(uint8_t bright, bool save);
 
     /**
      * 设置显示方向
@@ -386,6 +398,13 @@ public:
      * OTA 更新
      */
     void showOtaUpdate(uint8_t num);
+
+    /**
+     * @brief 时间延迟函数
+     *
+     * @param ms 延迟毫秒数
+     */
+    void delayTime(int ms);
 };
 
 #endif

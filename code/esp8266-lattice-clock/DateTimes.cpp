@@ -56,6 +56,11 @@ void DateTimes::setDateTimes(long timestamp)
   ds3231.setSecond(datetime.second());
 }
 
+/**
+ * @brief 获取时间戳信息
+ *
+ * @return long
+ */
 long DateTimes::getTimestamp()
 {
   // 如果从芯片取到的年数据为85的时候,表示这个数据不是从芯片里面取到的,所以就需要换成我们手动的
@@ -64,6 +69,15 @@ long DateTimes::getTimestamp()
     return currtimestamp;
   }
   return RTClib::now().unixtime();
+}
+
+/**
+ * @brief 系统时间戳++
+ *
+ */
+void DateTimes::timestampAdd()
+{
+  currtimestamp++;
 }
 
 void DateTimes::saveCountdownTimestamp(long timestamp)

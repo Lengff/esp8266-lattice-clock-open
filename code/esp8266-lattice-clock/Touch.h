@@ -1,8 +1,8 @@
 #ifndef TOUCH_H
 #define TOUCH_H
-#include "EEPROMTool.h"
 #include "HttpTool.h"
 #include "PilotLight.h"
+#include "System.h"
 #include "Udps.h"
 #include "Wifis.h"
 #include <ESP8266WiFi.h>
@@ -28,11 +28,10 @@ enum ModeEnum
   RESET = 99
 };
 
-Udps udps;                                               // UDP数据传输对象
-Wifis wifis = Wifis();                                   // wifi对象
 OneButton btnA = OneButton(D8, false, false);            // 按钮对象
 PilotLight pilotLight = PilotLight();                    // 控制LED亮灭对象
-Lattice lattice = Lattice();                             // 点阵显示对象
+Lattice lattice = Lattice(&btnA);                        // 点阵显示对象
+Wifis wifis = Wifis(&lattice, &pilotLight);              // wifi对象
 unsigned char displayData[4] = {0x00, 0x00, 0x00, 0xff}; // 点阵显示数,每个点阵应该显示那些数据
 const int powerLength = 5;                               // 有多少种功能
 uint8_t modePower[6] = {3, 3, 1, 1, 5, 1};               // 每个功能对应多少种模式
@@ -42,6 +41,7 @@ uint32_t clicktime = 0;                                  // 记录按键按下�
 long powerFlag = 0, powerFlag2 = 0;                      // 功能flag
 uint8_t sleepTime[5] = {0, 0, 8, 0, 1};                  // 这里表示设备休眠时间,默认是凌晨0点到早上八点,所以表示为0:0 ~ 8:0,最后一位是亮度(0:表示息屏,15表示最亮了)
 bool isSleepMode = false;                                // 标记当前是否处于睡眠模式
+const uint8_t version = 9;                               // OTA 固件版本号
 
 /**
  * @brief 初始化状态
@@ -80,18 +80,9 @@ void singleAClick()
     lattice.shutdown(false); // 让点阵屏重新显示
     return;
   }
-  // 如果wifi未连接,且当前wifi模式为wifi直连模式,单击则修改wifi模式为热点模式
-  if (WiFi.status() != WL_CONNECTED && wifis.wifiMode == 0x0)
-  {
-    // wifi没连接上的情况
-    wifis.enableApMode();
-  }
-  else
-  {
-    pilotLight.flashing(100); // 按键单击时先闪一下LED
-    power = power == powerLength ? 0 : ++power;
-    initStatus();
-  }
+  pilotLight.flashing(100);                   // 按键单击时先闪一下LED
+  power = power == powerLength ? 0 : ++power; // 功能加加
+  initStatus();                               // 初始化状态
 }
 
 /**
@@ -139,8 +130,8 @@ void longAClick()
     lattice.shutdown(false); // 让点阵屏重新显示
     return;
   }
-  pilotLight.dim(); // 按下的时候LED熄灭
-  clicktime = millis() - clicktime + 1000;
+  pilotLight.dim();                          // 按下的时候LED熄灭
+  clicktime = millis() - clicktime + 1000;   // 累加按下时间
   if (clicktime > 2000 && clicktime <= 5000) // 如果长按时间大于3秒,小于六秒则表示重置时间
   {
     power = RESETTIME;
@@ -150,11 +141,6 @@ void longAClick()
     power = RESET; // 切换功能模式
   }
   clicktime = 0; // 重置按下时间
-}
-
-ICACHE_RAM_ATTR void tickloop()
-{
-  btnA.tick();
 }
 
 /**
@@ -171,11 +157,10 @@ void touchLoop();
 
 void initTouch()
 {
-  attachInterrupt(digitalPinToInterrupt(D8), tickloop, CHANGE);
-  btnA.attachClick(singleAClick);             // 添加单击事件函数
-  btnA.attachDoubleClick(doubleAClick);       // 添加双击事件函数
-  btnA.attachLongPressStop(longAClick);       // 添加长按事件函数
-  btnA.attachLongPressStart(longAClickStart); // 添加按下事件函数
+  btnA.attachClick(singleAClick);       // 添加单击事件函数
+  btnA.attachDoubleClick(doubleAClick); // 添加双击事件函数
+  // btnA.attachLongPressStop(longAClick);       // 添加长按事件函数
+  // btnA.attachLongPressStart(longAClickStart); // 添加按下事件函数
 }
 
 void touchLoop()
