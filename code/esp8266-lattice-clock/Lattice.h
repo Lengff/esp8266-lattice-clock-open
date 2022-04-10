@@ -2,8 +2,8 @@
 #define LATTICE_H
 
 #include "EEPROMTool.h"
+#include "System.h"
 #include <LedControl.h>
-#include <OneButton.h>
 
 const uint8_t rowLength = 8;
 const uint8_t columnLength = 4;
@@ -164,8 +164,6 @@ struct LatticeSetting
 class Lattice
 {
 private:
-    OneButton *btn;
-
     /**
      * lc对象
      */
@@ -274,11 +272,6 @@ public:
     Lattice();
 
     /**
-     * 构造函数
-     */
-    Lattice(OneButton *onebutton);
-
-    /**
      *  初始化
      */
     void init();
@@ -316,20 +309,23 @@ public:
     /**
      * 动态显示时间
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime(uint8_t *arr);
+    void showTime(uint8_t *arr, void (*callback)());
 
     /**
      * 显示时间模式2
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime2(uint8_t *arr);
+    void showTime2(uint8_t *arr, void (*callback)());
 
     /**
-     *显示时间模式2
-     *这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
+     * 显示时间模式2
+     * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime3(uint8_t *arr);
+    void showTime3(uint8_t *arr, void (*callback)());
 
     /**
      * 显示倒计时
@@ -398,13 +394,6 @@ public:
      * OTA 更新
      */
     void showOtaUpdate(uint8_t num);
-
-    /**
-     * @brief 时间延迟函数
-     *
-     * @param ms 延迟毫秒数
-     */
-    void delayTime(int ms);
 };
 
 #endif

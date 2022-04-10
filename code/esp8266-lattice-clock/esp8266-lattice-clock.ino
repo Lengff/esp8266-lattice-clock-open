@@ -67,6 +67,63 @@ void handleUdpData()
 }
 
 /**
+ * @brief 显示时间回调处理
+ *
+ */
+void showTimeCallback()
+{
+  handleUdpData();
+  touchLoop();
+  // Blinker.run();
+}
+
+/**
+ * @brief 显示时间
+ *
+ * @param showmode
+ */
+void showTime(uint8_t showmode)
+{
+  Times times = datetimes.getTimes();
+  if (times.s == powerFlag)
+  {
+    return; // 如果秒钟数没有改变,则不执行方法
+  }
+  powerFlag = times.s;
+  displayData[0] = times.s;
+  displayData[1] = times.m;
+  displayData[2] = times.h;
+  if (showmode == 0)
+  {
+    lattice.showTime3(displayData, showTimeCallback);
+  }
+  else if (showmode == 1)
+  {
+    lattice.showTime(displayData, showTimeCallback);
+  }
+  else
+  {
+    if (times.s == 0 || powerFlag == -1)
+    {
+      displayData[0] = times.m % 10;
+      displayData[1] = times.m / 10;
+      displayData[2] = times.h % 10;
+      displayData[3] = times.h / 10;
+      lattice.showTime2(displayData, showTimeCallback);
+    }
+    powerFlag = times.s;
+    if (times.s % 2 == 0)
+    {
+      lattice.reversalLR(3);
+    }
+    else
+    {
+      lattice.reversalUD(3);
+    }
+  }
+}
+
+/**
  * 功能处理
  */
 void handlePower()

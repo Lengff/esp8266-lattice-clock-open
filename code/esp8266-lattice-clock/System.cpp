@@ -25,3 +25,25 @@ long System::uint8t_to_long(uint8_t *data, int length)
     }
     return temp;
 }
+
+/**
+ * @brief 重新定义延迟函数
+ *
+ * @param ms
+ * @param callback
+ */
+void System::delay_time(int ms, void (*callback)())
+{
+    int timeFlag = millis();
+    while (true)
+    {
+        if (millis() - timeFlag >= ms)
+        {
+            break;
+        }
+        if (callback != NULL)
+        {
+            callback();
+        }
+    }
+}

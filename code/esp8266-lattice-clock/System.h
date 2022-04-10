@@ -23,7 +23,13 @@ public:
      * @return long
      */
     static long uint8t_to_long(uint8_t *data, int length);
-};
 
+    /**
+     * @brief 时间延迟函数
+     *
+     * @param ms 延迟毫秒数
+     */
+    static void delay_time(int ms, void (*callback)());
+};
 
 #endif

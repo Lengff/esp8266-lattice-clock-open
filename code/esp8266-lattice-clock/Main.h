@@ -19,9 +19,9 @@ Ticker timestampticker;                                  // 手动累加时间�
 Ticker httptoolticker;                                   // 每五秒钟处理一次http请求标志
 DateTimes datetimes;                                     // 时间管理对象
 HttpTool httptool;                                       // HTTP 请求对象
+Lattice lattice = Lattice();                             // 点阵显示对象
 OneButton btnA = OneButton(D8, false, false);            // 按钮对象
 PilotLight pilotLight = PilotLight();                    // 控制LED亮灭对象
-Lattice lattice = Lattice(&btnA);                        // 点阵显示对象
 Wifis wifis = Wifis(&lattice, &pilotLight);              // wifi对象
 Functions functions = Functions(&pilotLight);            // 功能管理对象
 Otas otas = Otas(&lattice, &pilotLight);                 // OTA更新处理对象
@@ -275,52 +275,6 @@ void setUserData(uint8_t *data)
     }
     functions.setPowerAndMode(CUSTOM, 0); // 重置功能
     initStatus();                         // 重置状态
-}
-
-/**
- * @brief 显示时间
- *
- * @param showmode
- */
-void showTime(uint8_t showmode)
-{
-    Times times = datetimes.getTimes();
-    if (times.s == powerFlag)
-    {
-        return; // 如果秒钟数没有改变,则不执行方法
-    }
-    powerFlag = times.s;
-    displayData[0] = times.s;
-    displayData[1] = times.m;
-    displayData[2] = times.h;
-    if (showmode == 0)
-    {
-        lattice.showTime3(displayData);
-    }
-    else if (showmode == 1)
-    {
-        lattice.showTime(displayData);
-    }
-    else
-    {
-        if (times.s == 0 || powerFlag == -1)
-        {
-            displayData[0] = times.m % 10;
-            displayData[1] = times.m / 10;
-            displayData[2] = times.h % 10;
-            displayData[3] = times.h / 10;
-            lattice.showTime2(displayData);
-        }
-        powerFlag = times.s;
-        if (times.s % 2 == 0)
-        {
-            lattice.reversalLR(3);
-        }
-        else
-        {
-            lattice.reversalUD(3);
-        }
-    }
 }
 
 /**
