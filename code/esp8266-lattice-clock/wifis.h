@@ -56,6 +56,12 @@ private:
    */
   void initWebServer();
 
+  /**
+   * @brief wifi模式 0x00: 连接wifi模式(STA)  0x01: wifi热点模式(AP)
+   *
+   */
+  uint8_t wifiMode = 0x00;
+
 public:
   /**
    * @brief 构造函数
@@ -72,12 +78,6 @@ public:
   Wifis(Lattice *latticeobj, PilotLight *pilotLightobj);
 
   /**
-   * @brief wifi模式 0x00: 连接wifi模式(STA)  0x01: wifi热点模式(AP)
-   *
-   */
-  uint8_t wifiMode = 0x00;
-
-  /**
    * @brief 连接wifi
    *
    */
@@ -88,6 +88,14 @@ public:
    *
    */
   void enableApMode();
+
+  /**
+   * @brief 获取当前wifi状态,判断是否是热点模式
+   *
+   * @return true
+   * @return false
+   */
+  bool isApMode();
 
   /**
    * @brief wifi轮循方法

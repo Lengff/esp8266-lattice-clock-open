@@ -5,9 +5,15 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
 
+static bool is_need_update_bilibili = false; // 判断是否需要更新bilibili粉丝数flag
+
 class HttpTool
 {
 private:
+  /**
+   * @brief wifi客户端
+   *
+   */
   WiFiClient wifiClient;
   /**
    * http客户端
@@ -51,6 +57,12 @@ public:
    * 保存BiliBili_Uid
    */
   void saveBuid(long uid);
+
+  /**
+   * @brief 时间戳++
+   *
+   */
+  static void updateBilibiliFlag();
 };
 
 #endif

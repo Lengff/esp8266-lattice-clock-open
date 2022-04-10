@@ -14,9 +14,6 @@ HttpTool httptool;                                   //
 Otas otas = Otas(&lattice, &pilotLight);             // OTA更新处理对象
 DateTimes datetimes;                                 // 时间管理对象
 Udps udps = Udps(&datetimes, &lattice, &pilotLight); // UDP数据传输对象
-bool updateFansIf = false;                           // 判断是否需要更新B站粉丝
-
-void updateBiliFstatus() { updateFansIf = true; }
 
 /**
  * 订阅bilibili用户ID
@@ -25,16 +22,19 @@ void subBili(uint8_t *data)
 {
   long uid = System::uint8t_to_long(data, 5); // 先将uint_8转成 long
   httptool.saveBuid(uid);                     // 在将uid保存到存储器中去
-  power = BILIFANS;                           // 切换显示模式为bilibili显示
-  initStatus();
+  functions.setPowerAndMode(BILIFANS, 0);     // 切换显示模式为bilibili显示
 }
 
+/**
+ * @brief 设置倒计时信息
+ *
+ * @param data
+ */
 void setCountdown(uint8_t *data)
 {
   long timestamp = System::uint8t_to_long(data, 5); // 先将uint_8转成 long
   datetimes.saveCountdownTimestamp(timestamp);      // 将倒计时时间戳保存起来
-  power = COUNTDOWN;                                // 切换显示模式为倒计时显示
-  initStatus();
+  functions.setPowerAndMode(COUNTDOWN, 0);          // 切换显示模式为bilibili显示
 }
 
 /**
@@ -150,11 +150,10 @@ void resetTime(uint8_t *data)
   }
   else
   {
-    udps.updateTime();
+    udps.updateTime(); // 校准时间
   }
-  initStatus();
-  power = POWER0;
-  powers[power] = 0;
+  functions.reset(); // 重置功能
+  initStatus();      // 重置状态
 }
 
 /**
@@ -166,9 +165,8 @@ void setUserData(uint8_t *data)
   {
     lattice.latticeSetting.userData[i] = data[i];
   }
-  power = CUSTOM;
-  powers[power] = 0;
-  initStatus();
+  functions.setPowerAndMode(CUSTOM, 0); // 重置功能
+  initStatus();                         // 重置状态
 }
 
 /**
@@ -342,18 +340,13 @@ void showTemperature()
  */
 void showBiliFans()
 {
-  if (updateFansIf) // 判断是否需要更新bilibili粉丝数量
-  {
-    httptool.bilibiliFans(); // 每五秒获取一次bilibili粉丝信息
-    updateFansIf = false;    // 重置状态
-  }
-  Times times = datetimes.getTimes();
+  httptool.bilibiliFans();            // 每次进来判断是否需要更新bilibili粉丝信息,这里是五分钟更新一次
+  Times times = datetimes.getTimes(); // 获取系统时间
   if (displayData[0] != times.s && powerFlag < 99999)
   {
     displayData[0] = times.s; // 这里由于没有缓存数组了,所以就用这个缓存数组
     lattice.lightning(3);
   }
-
   long fans = httptool.fans;
   if (fans == powerFlag)
   {
@@ -399,7 +392,7 @@ void showUserData(uint8_t showmode)
  */
 void handleUdpData()
 {
-  Udpdata udpdata = udps.userLatticeLoop(power, powers[power], version);
+  Udpdata udpdata = udps.userLatticeLoop(functions.getCurrPower(), functions.getCurrMode(), LATTICE_CLOCK_VERSION);
   if (udpdata.lh < 1) // 数据长度小于1则表示没有接收到任何数据
   {
     // 没有收到任何UDP数据
@@ -414,15 +407,16 @@ void handleUdpData()
     lattice.setBrightness(udpdata.data[0], true); // 设置亮度
     break;
   case 2:
-    power = udpdata.data[0]; // 切换功能
+    functions.setPowerAndMode(udpdata.data[0], 0); // 切换功能
     initStatus();
     break;
   case 3:
-    powers[power] = udpdata.data[0]; // 切换功能显示样式
+    functions.setMode(udpdata.data[0]); // 切换功能模式
     initStatus();
     break;
   case 4:
     subBili(udpdata.data); // 订阅BIlibiliUID
+    initStatus();
     break;
   case 5:
     lattice.shutdown(udpdata.data[0]); // 是否启用点阵屏幕
@@ -435,13 +429,14 @@ void handleUdpData()
     break;
   case 8:
     lattice.latticeSetting.speed = udpdata.data[0]; // 设置动画速度
-    power = CUSTOM;
+    functions.setPower(CUSTOM);
     break;
   case 9:
     otas.updateOta(udpdata.data[0]); // OTA 升级
     break;
   case 10:
     setCountdown(udpdata.data); // 设置倒计时
+    initStatus();
     break;
   case 11:
     setSleepTime(udpdata.data); // 设置睡眠时间
@@ -456,13 +451,13 @@ void handleUdpData()
  */
 void handlePower()
 {
-  switch (power) // 显示数据模式
+  switch (functions.getCurrPower()) // 显示数据模式
   {
-  case POWER0:
-    showTime(powers[power]); // 显示时间
+  case SHOW_TIME:
+    showTime(functions.getCurrMode()); // 显示时间
     break;
-  case POWER1:
-    showDate(powers[power]); // 显示日期
+  case SHOW_DATE:
+    showDate(functions.getCurrMode()); // 显示日期
     break;
   case POWER2:
     showTemperature(); // 显示温度
@@ -471,7 +466,7 @@ void handlePower()
     showBiliFans(); // 显示bilibili粉丝数量
     break;
   case CUSTOM:
-    showUserData(powers[power]); // 显示用户自定义的数据
+    showUserData(functions.getCurrMode()); // 显示用户自定义的数据
     break;
   case COUNTDOWN:
     showCountDown(); // 显示倒计时
@@ -489,18 +484,18 @@ void handlePower()
 
 void setup()
 {
-  Serial.begin(115200);                               // 初始化串口波特率
-  WiFi.hostname("lattice-clock");                     //设置ESP8266设备名
-  initTouch();                                        // 初始化按键信息
-  wifis.connWifi();                                   // 连接wifi
-  udps.initudp();                                     // 初始化UDP客户端
-  pilotLight.dim();                                   //正常进操作就熄灭指示灯
-  httptoolticker.attach(5, updateBiliFstatus);        // 每分钟更新一次bilibili粉丝数量
-  timestampticker.attach(1, DateTimes::timestampAdd); // 每一秒叠加一次秒数
-  if (wifis.wifiMode == 0x00)                         // 如果wifi模式为连接wifi的模式则联网矫正时间
+  Serial.begin(115200);                                             // 初始化串口波特率
+  WiFi.hostname("lattice-clock");                                   //设置ESP8266设备名
+  initTouch();                                                      // 初始化按键信息
+  wifis.connWifi();                                                 // 连接wifi
+  udps.initudp();                                                   // 初始化UDP客户端
+  httptoolticker.attach(5 * 6 * 1000, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
+  timestampticker.attach(1, DateTimes::timestampAdd);               // 每一秒叠加一次秒数
+  if (!wifis.isApMode())                                            // 如果wifi模式为连接wifi的模式则联网矫正时间
   {
-    resetTime(NULL);         // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
-    httptool.bilibiliFans(); // 刷新bilibili粉丝数量
+    resetTime(NULL);               // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.updateBilibiliFlag(); // 更新bilibili粉丝数量钱,需要重置一下flag
+    httptool.bilibiliFans();       // 刷新bilibili粉丝数量
   }
   initSleepTime(); // 初始化休眠时间
 }

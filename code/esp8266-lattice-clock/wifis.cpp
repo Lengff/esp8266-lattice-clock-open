@@ -13,7 +13,7 @@ Wifis::Wifis(Lattice *latticeobj, PilotLight *pilotLightobj)
 
 void Wifis::wifiloop()
 {
-  if (wifiMode == 0x01) // 这里只有在热点模式下才进行此操作
+  if (isApMode()) // 这里只有在热点模式下才进行此操作
   {
     server.handleClient();
     dnsServer.processNextRequest();
@@ -115,9 +115,9 @@ void Wifis::initWebServer()
 
 void Wifis::connWifi()
 {
-  initWifi();           // 初始化wifi信息
-  int timer = 0;        // 清零计数器
-  if (wifiMode == 0x01) // 模式为热点模式就不走连接wifi和wifi配网了
+  initWifi();     // 初始化wifi信息
+  int timer = 0;  // 清零计数器
+  if (isApMode()) // 模式为热点模式就不走连接wifi和wifi配网了
   {
     return; // 如果wifi模式为热点模式,则不进wifi连接和配网
   }
@@ -176,4 +176,16 @@ void Wifis::enableApMode()
 {
   EEPROMTool.saveDataOne(0x01, WIFI_MODE); // 修改wifi模式,随后重启ESP
   ESP.restart();                           // 重启系统
+}
+
+/**
+ * @brief 获取当前wifi状态,判断是否是热点模式
+ *
+ * @return true
+ * @return false
+ */
+bool Wifis::isApMode()
+{
+  // 只有wifi模式 == 0x01时,表示wifi为热点模式
+  return wifiMode == 0x01;
 }

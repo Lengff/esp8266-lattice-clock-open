@@ -2,6 +2,11 @@
 
 DateTimes::DateTimes() { Wire.begin(); }
 
+/**
+ * @brief 获取时间信息
+ *
+ * @return Times
+ */
 Times DateTimes::getTimes()
 {
   times.s = ds3231.getSecond();
@@ -18,6 +23,11 @@ Times DateTimes::getTimes()
   return times;
 }
 
+/**
+ * @brief 获取日期信息
+ *
+ * @return Dates
+ */
 Dates DateTimes::getDates()
 {
   dates.y = 2000 + ds3231.getYear();
@@ -34,16 +44,26 @@ Dates DateTimes::getDates()
   return dates;
 }
 
+/**
+ * @brief 获取温度信息
+ *
+ * @return int
+ */
 int DateTimes::getTemperature()
 {
   // 如果从芯片取到的年数据为85的时候,表示这个数据不是从芯片里面取到的,所以就需要换成我们手动的
   if (ds3231.getMonth(century) == 85)
   {
-    return 8888;
+    return 8888; // 假如你读取到的温度信息为88.88的时候,说明你设备没有用到时钟芯片提供的时间信息
   }
   return ds3231.getTemperature() * 100;
 }
 
+/**
+ * @brief 给时钟芯片和系统时间设置时间信息
+ *
+ * @param timestamp
+ */
 void DateTimes::setDateTimes(long timestamp)
 {
   currtimestamp = timestamp;
@@ -80,6 +100,11 @@ void DateTimes::timestampAdd()
   currtimestamp++;
 }
 
+/**
+ * @brief 保存倒计时时间戳信息
+ *
+ * @param timestamp
+ */
 void DateTimes::saveCountdownTimestamp(long timestamp)
 {
   uint8_t arr[5];
@@ -91,6 +116,11 @@ void DateTimes::saveCountdownTimestamp(long timestamp)
   EEPROMTool.saveData(arr, 103, 5);
 }
 
+/**
+ * @brief 获取倒计时时间戳信息
+ *
+ * @return long
+ */
 long DateTimes::getCountdownTimestamp()
 {
   long timestamp = 0;

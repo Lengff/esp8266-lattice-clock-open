@@ -6,6 +6,10 @@ void HttpTool::initHttptool() {}
 
 void HttpTool::bilibiliFans()
 {
+  if (!is_need_update_bilibili)
+  {
+    return;
+  }
   fans = 0;             // 每次都先重置粉丝数量,避免出现问题
   biliUid = loadBuid(); // 每次都重新加载bilibili用户ID
   Serial.println(biliUid);
@@ -13,6 +17,7 @@ void HttpTool::bilibiliFans()
   if (WiFi.status() != WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
   {
     Serial.println("no wifi");
+    is_need_update_bilibili = false;
     return;
   }
   espClient.begin(wifiClient, bilibiliFansApi + biliUid); // 这里做法欠妥，我用自己服务器做了一层代理，直接解析了UP的粉丝数
@@ -25,6 +30,7 @@ void HttpTool::bilibiliFans()
       String nums = espClient.getString();
       fans = strtol(nums.c_str(), NULL, 10);
       Serial.println(fans);
+      is_need_update_bilibili = false;
     }
   }
   espClient.end();
@@ -61,4 +67,9 @@ long HttpTool::loadBuid()
   // 用完以后删除内存
   free(temp);
   return uid;
+}
+
+void HttpTool::updateBilibiliFlag()
+{
+  is_need_update_bilibili = true;
 }
