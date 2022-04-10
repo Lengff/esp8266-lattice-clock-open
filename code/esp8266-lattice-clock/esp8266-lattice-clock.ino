@@ -1,4 +1,8 @@
 #include "Main.h"
+// 这里加了一个点灯科技的代码支持，假如说你想用点灯科技，则可以注释掉下面这段代码
+// #include "BlinkerSupport.h"
+// 然后在step函数中注释掉那段initBlinker();和Blinker.run();代码即可
+// 关于这段的说明请参考：https://gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 
@@ -112,6 +116,7 @@ void setup()
     resetTime(NULL);               // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
     httptool.updateBilibiliFlag(); // 更新bilibili粉丝数量前,需要重置一下flag
     httptool.bilibiliFans();       // 刷新bilibili粉丝数量
+    // initBlinker();
   }
   initSleepTime(); // 初始化休眠时间
 }
@@ -123,4 +128,5 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
+  // Blinker.run();
 }

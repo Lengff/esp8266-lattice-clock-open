@@ -1,5 +1,5 @@
-#ifndef TOUCH_H
-#define TOUCH_H
+#ifndef MAIN_H
+#define MAIN_H
 #include "DateTimes.h"
 #include "EEPROMTool.h"
 #include "Functions.h"
