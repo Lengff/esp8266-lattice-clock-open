@@ -48,7 +48,7 @@ void HttpTool::saveBuid(long uid)
     arr[i] = (uid & 0xff);
     uid >>= 8;
   }
-  EEPROMTool.saveData(arr, 97, 5);
+  EEPROMTool.saveData(arr, BILIBILI_UID, 5);
 }
 
 /**
@@ -59,7 +59,7 @@ void HttpTool::saveBuid(long uid)
 long HttpTool::loadBuid()
 {
   long uid = 0;
-  uint8_t *temp = EEPROMTool.loadData(97, 5); // 这里的97处理的不得当,后续优化,但是不影响实际功能
+  uint8_t *temp = EEPROMTool.loadData(BILIBILI_UID, 5); // 这里的97处理的不得当,后续优化,但是不影响实际功能
   for (int i = 0; i < 5; i++)
   {
     uid += temp[i] << (i * 8);

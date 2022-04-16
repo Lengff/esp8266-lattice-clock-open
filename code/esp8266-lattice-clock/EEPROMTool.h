@@ -3,16 +3,21 @@
 
 #include <EEPROM.h>
 
-#define EEPROM_BEGIN 1024
+#define EEPROM_BEGIN 1536
+#define EEPROM_LENGTH 50
 
 enum EEPROM_ADDRESS_ENUM
 {
 
-  REMEMBER_WIFI = 1, // 记住wifi内存地址
-  WIFI_MODE = 2,     // wifi模式内存地址
-  DIRECTION = 3,     // 屏幕显示方向内存地址
-  BRIGHTNESS = 4,    // 屏幕亮度内存地址
-  SLEEP_TIME = 5     // 从第5位到第9位来存睡眠时间
+  REMEMBER_WIFI = EEPROM_BEGIN + 1,   // 记住wifi内存地址
+  WIFI_MODE = EEPROM_BEGIN + 2,       // wifi模式内存地址
+  DIRECTION = EEPROM_BEGIN + 3,       // 屏幕显示方向内存地址
+  BRIGHTNESS = EEPROM_BEGIN + 4,      // 屏幕亮度内存地址
+  SLEEP_TIME = EEPROM_BEGIN + 5,      // 从第5位到第9位来存睡眠时间相关
+  BILIBILI_UID = EEPROM_BEGIN + 10,   // 从10到14来存储bilibilii的UID
+  COUNTDOWN_TIME = EEPROM_BEGIN + 15, // 从15到19来存储倒计时时间戳
+  H12_ADDR = EEPROM_BEGIN + 20,       // 12位存放H12标记 \\\ 这里占位,暂无任何意义
+  ANNI_DAY = EEPROM_BEGIN + 21        // 10,11存放纪念日 月和 日 \\\ 这里占位,暂无任何意义
 };
 
 struct EEPROMTOOLS
@@ -22,7 +27,6 @@ struct EEPROMTOOLS
    */
   void saveData(uint8_t *data, int offset, int length)
   {
-    EEPROM.begin(EEPROM_BEGIN);
     for (int i = 0; i < length; i++)
     {
       EEPROM.write(offset + i, data[i] & 0xff);
@@ -37,7 +41,6 @@ struct EEPROMTOOLS
    */
   void saveDataOne(uint8_t data, int offset)
   {
-    EEPROM.begin(EEPROM_BEGIN);
     EEPROM.write(offset, data & 0xff);
     EEPROM.commit();
   }
@@ -52,7 +55,6 @@ struct EEPROMTOOLS
   uint8_t *loadData(int offset, int length)
   {
     unsigned char *arr = new uint8_t[length];
-    EEPROM.begin(EEPROM_BEGIN);
     for (int i = 0; i < length; i++)
     {
       arr[i] = EEPROM.read(offset + i);
@@ -65,9 +67,8 @@ struct EEPROMTOOLS
    */
   uint8_t loadDataOne(int offset)
   {
-    unsigned char *arr = new uint8_t[1];
-    EEPROM.begin(EEPROM_BEGIN);
-    return EEPROM.read(offset);
+    unsigned char arr = EEPROM.read(offset);
+    return arr;
   }
 
   /**
@@ -75,7 +76,6 @@ struct EEPROMTOOLS
    */
   void clearData(int offset, int length)
   {
-    EEPROM.begin(EEPROM_BEGIN);
     for (int i = 0; i < length; i++)
     {
       EEPROM.write(offset + i, 0x0);
@@ -88,12 +88,40 @@ struct EEPROMTOOLS
    */
   void clearAll()
   {
-    EEPROM.begin(EEPROM_BEGIN);
-    for (int i = 0; i < EEPROM_BEGIN + 300; i++)
+    EEPROM.begin(4096);
+    for (int i = 0; i < 4096; i++)
     {
       EEPROM.write(i, 0x0);
     }
-    EEPROM.commit();
+    EEPROM.end();
+  }
+
+  /**
+   * @brief 备份自用数据到内存
+   */
+  uint8_t *backupAll()
+  {
+    uint8_t *arr = new uint8_t[EEPROM_LENGTH];
+    EEPROM.begin(2048);
+    for (int i = 0; i < EEPROM_LENGTH; i++)
+    {
+      arr[i] = EEPROM.read(EEPROM_BEGIN + i);
+    }
+    EEPROM.end();
+    return arr;
+  }
+
+  /**
+   * @brief 恢复内存数据到EEPROM
+   */
+  void restoreAll(uint8_t *arr)
+  {
+    EEPROM.begin(2048);
+    for (int i = 0; i < EEPROM_LENGTH; i++)
+    {
+      EEPROM.write(EEPROM_BEGIN + i, arr[i]);
+    }
+    EEPROM.end();
   }
 };
 

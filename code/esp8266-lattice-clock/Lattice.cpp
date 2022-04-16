@@ -71,7 +71,7 @@ void Lattice::initLattice()
 
 void Lattice::refreshLed()
 {
-  if (latticeSetting.direction)
+  if (!latticeSetting.direction)
   {
     // 正着显示
     for (int j = 0; j < rowLength; j++)

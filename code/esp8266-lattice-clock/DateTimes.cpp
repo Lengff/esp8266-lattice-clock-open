@@ -113,7 +113,7 @@ void DateTimes::saveCountdownTimestamp(long timestamp)
     arr[i] = (timestamp & 0xff);
     timestamp >>= 8;
   }
-  EEPROMTool.saveData(arr, 103, 5);
+  EEPROMTool.saveData(arr, COUNTDOWN_TIME, 5);
 }
 
 /**
@@ -124,7 +124,7 @@ void DateTimes::saveCountdownTimestamp(long timestamp)
 long DateTimes::getCountdownTimestamp()
 {
   long timestamp = 0;
-  uint8_t *temp = EEPROMTool.loadData(103, 5); // 这里的103处理的不得当,后续优化,但是不影响实际功能
+  uint8_t *temp = EEPROMTool.loadData(COUNTDOWN_TIME, 5);
   for (int i = 0; i < 5; i++)
   {
     timestamp += temp[i] << (i * 8);

@@ -3,6 +3,7 @@
 // #include "BlinkerSupport.h"
 // 然后在step函数中注释掉那段initBlinker();和Blinker.run();代码即可
 // 关于这段的说明请参考：https://gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
+// #include "HomeKit.h"
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 
@@ -74,7 +75,10 @@ void showTimeCallback()
 {
   handleUdpData();
   touchLoop();
-  // Blinker.run();
+  if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
+  {
+    // Blinker.run();
+  }
 }
 
 /**
@@ -162,6 +166,7 @@ void handlePower()
 void setup()
 {
   Serial.begin(115200);                                             // 初始化串口波特率
+  EEPROM.begin(4096);                                               //
   WiFi.hostname("lattice-clock");                                   //设置ESP8266设备名
   initTouch();                                                      // 初始化按键信息
   wifis.connWifi();                                                 // 连接wifi
@@ -185,5 +190,8 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
-  // Blinker.run();
+  if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
+  {
+    // Blinker.run();
+  }
 }
