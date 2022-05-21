@@ -1,6 +1,7 @@
 #ifndef DATETIMES_H
 #define DATETIMES_H
 
+#include "Dht11.h"
 #include "EEPROMTool.h"
 #include <DS3231.h>
 #include <Wire.h>
@@ -41,6 +42,12 @@ private:
   DateTime datetime;
 
   /**
+   * @brief Dht11 温度传感器对象
+   *
+   */
+  Dht11 *dht11;
+
+  /**
    * @brief 时间结构体
    *
    */
@@ -57,6 +64,11 @@ public:
    * 构造函数
    */
   DateTimes();
+
+  /**
+   * 构造函数
+   */
+  DateTimes(Dht11 *dht11obj);
 
   /**
    * @brief 初始化

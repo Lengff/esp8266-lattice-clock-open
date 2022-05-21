@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include "DateTimes.h"
+#include "Dht11.h"
 #include "EEPROMTool.h"
 #include "Functions.h"
 #include "HttpTool.h"
@@ -17,7 +18,8 @@
 
 Ticker timestampticker;                                  // 手动累加时间戳任务
 Ticker httptoolticker;                                   // 每五秒钟处理一次http请求标志
-DateTimes datetimes;                                     // 时间管理对象
+Dht11 dht11 = Dht11();                                   // DHT11温度传感器对象
+DateTimes datetimes = DateTimes(&dht11);                 // 时间管理对象
 HttpTool httptool;                                       // HTTP 请求对象
 Lattice lattice = Lattice();                             // 点阵显示对象
 OneButton btnA = OneButton(D8, false, false);            // 按钮对象

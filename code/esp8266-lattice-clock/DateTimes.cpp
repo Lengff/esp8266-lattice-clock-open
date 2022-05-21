@@ -2,6 +2,12 @@
 
 DateTimes::DateTimes() { Wire.begin(); }
 
+DateTimes::DateTimes(Dht11 *dht11obj)
+{
+  dht11 = dht11obj;
+  Wire.begin();
+}
+
 /**
  * @brief 获取时间信息
  *
@@ -54,7 +60,7 @@ int DateTimes::getTemperature()
   // 如果从芯片取到的年数据为85的时候,表示这个数据不是从芯片里面取到的,所以就需要换成我们手动的
   if (ds3231.getMonth(century) == 85)
   {
-    return 8888; // 假如你读取到的温度信息为88.88的时候,说明你设备没有用到时钟芯片提供的时间信息
+    return dht11->get_tah().temperature * 100; //
   }
   return ds3231.getTemperature() * 100;
 }
