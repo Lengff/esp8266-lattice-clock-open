@@ -9,12 +9,10 @@ void Lattice::init()
   latticeSetting.brightness = EEPROMTool.loadDataOne(BRIGHTNESS); // 从eeprom中获取亮度信息
   shutdown(latticeSetting.isShutdown);                            // 是否关闭点阵屏幕
   setBrightness(latticeSetting.brightness, true);                 // 将亮度设置为最低
-  for (int i = 0; i < 32; i++)
-  {
-    latticeSetting.userData[i] = noseticon[i]; // 初始化自定义数据
-  }
-  latticeSetting.speed = 1; // 自定义动画速度
-  initLattice();            // 初始化点阵显示内容
+  memcpy(latticeSetting.userData, noseticon, sizeof(noseticon));  // 初始化自定义数据
+  latticeSetting.speed = 1;                                       // 自定义动画速度
+  initData();                                                     // 初始化点阵显示内容
+  refreshLed();                                                   // 刷新显示
 }
 
 void Lattice::shutdown(bool down)
@@ -48,7 +46,7 @@ void Lattice::setDirection(bool direct)
 {
   latticeSetting.direction = direct;         // 设置屏幕显示方向
   EEPROMTool.saveDataOne(direct, DIRECTION); // 设置亮度信息到EEPROM
-  refreshLed();
+  refreshLed();                              //
 }
 
 void Lattice::reset()
@@ -57,16 +55,9 @@ void Lattice::reset()
   tempindex = 3;
 }
 
-void Lattice::initLattice()
+void Lattice::initData()
 {
-  for (int i = 0; i < columnLength; i++)
-  {
-    for (int j = 0; j < rowLength; j++)
-    {
-      data[i][j] = 0x0;
-    }
-  }
-  refreshLed();
+  memset(data, 0x0, sizeof(data));
 }
 
 void Lattice::refreshLed()
@@ -245,8 +236,7 @@ unsigned char *Lattice::getBigNumData(uint8_t number, uint8_t offset)
     // 超过最大值,返回9
     return getBigNumData(9, offset);
   }
-  // 偏移超过最大值,则不进行偏移
-  offset = offset > 7 ? 0 : offset;
+  offset = offset > 7 ? 0 : offset; // 偏移超过最大值,则不进行偏移
   const unsigned char *temp = number_font_middle[number];
   unsigned char *arr = new uint8_t[rowLength];
   for (int i = 0; i < rowLength; i++)
@@ -267,8 +257,7 @@ void Lattice::offsetBuff(uint8_t index, int8_t offset)
     uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - os);
     for (int i = 0; i < 8; i++)
     {
-      buff[lastindex][i] = (buff[lastindex][i] & lastoffset) +
-                           ((buff[index][i] & nextoffset) >> (8 - os));
+      buff[lastindex][i] = (buff[lastindex][i] & lastoffset) + ((buff[index][i] & nextoffset) >> (8 - os));
       buff[index][i] <<= os;
     }
   }
@@ -280,8 +269,7 @@ void Lattice::offsetBuff(uint8_t index, int8_t offset)
     uint8_t nextoffset = (lastoffset ^ 0xff) >> (8 - os);
     for (int i = 0; i < 8; i++)
     {
-      buff[lastindex][i] = (buff[lastindex][i] & lastoffset) +
-                           ((buff[index][i] & (nextoffset)) << (8 - os));
+      buff[lastindex][i] = (buff[lastindex][i] & lastoffset) + ((buff[index][i] & (nextoffset)) << (8 - os));
       buff[index][i] >>= os;
     }
   }
@@ -298,8 +286,7 @@ void Lattice::offsetData(uint8_t index, int8_t offset)
     uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - os);
     for (int i = 0; i < 8; i++)
     {
-      data[lastindex][i] = (data[lastindex][i] & lastoffset) +
-                           ((data[index][i] & nextoffset) >> (8 - os));
+      data[lastindex][i] = (data[lastindex][i] & lastoffset) + ((data[index][i] & nextoffset) >> (8 - os));
       data[index][i] <<= os;
     }
   }
@@ -311,8 +298,7 @@ void Lattice::offsetData(uint8_t index, int8_t offset)
     uint8_t nextoffset = (lastoffset ^ 0xff) >> (8 - os);
     for (int i = 0; i < 8; i++)
     {
-      data[lastindex][i] = (data[lastindex][i] & lastoffset) +
-                           ((data[index][i] & (nextoffset)) << (8 - os));
+      data[lastindex][i] = (data[lastindex][i] & lastoffset) + ((data[index][i] & (nextoffset)) << (8 - os));
       data[index][i] >>= os;
     }
   }
@@ -345,10 +331,7 @@ void Lattice::showLongIcon(uint8_t index)
 void Lattice::showNum(uint8_t index, int nums)
 {
   unsigned char *tmp = getNumData(nums, false);
-  for (int i = 0; i < rowLength; i++)
-  {
-    data[index][i] = tmp[i];
-  }
+  memcpy(data[index], tmp, 8);
   free(tmp);
   refreshLed();
 }
@@ -488,17 +471,11 @@ void Lattice::showTime(uint8_t *arr, void (*callback)())
   uint8_t mfs[4] = {0x0, 0x0, 0x0, 0x0};
   for (int k = 0; k < columnLength; k++)
   {
-    // 得到新的要显示的数字
-    unsigned char *tmp = getNumData(arr[k], false);
-    for (int x = 0; x < 8; x++)
-    {
-      buff[k][x] = tmp[x];
-      // 这里只能显示三位数字,所以最后一位清零
-      buff[3][x] = 0x00;
-    }
+    unsigned char *tmp = getNumData(arr[k], false); // 得到新的要显示的数字
+    memcpy(buff[k], tmp, 8);
     free(tmp);
-    if (k == 0 || (k == 1 && arr[0] == 0) ||
-        (k == 2 && (arr[1] == 0 && arr[0] == 0)))
+    memset(buff[3], 0x0, 8); // 这里只能显示三位数字,所以最后一位清零
+    if (k == 0 || (k == 1 && arr[0] == 0) || (k == 2 && (arr[1] == 0 && arr[0] == 0)))
     {
       mfs[k] = (arr[k] % 10 == 0) ? 0xff : 0xf;
     }
@@ -510,8 +487,7 @@ void Lattice::showTime(uint8_t *arr, void (*callback)())
     uint8_t offset = k * 2 + 2;
     uint8_t lastoffset = (0xff >> offset) << offset;
     uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - offset);
-    mfs[k + 1] =
-        (mfs[k + 1] & lastoffset) + ((mfs[k] & nextoffset) >> (8 - offset));
+    mfs[k + 1] = (mfs[k + 1] & lastoffset) + ((mfs[k] & nextoffset) >> (8 - offset));
     mfs[k] <<= offset;
     offsetBuff(k, (-1 * offset));
   }
@@ -519,10 +495,7 @@ void Lattice::showTime(uint8_t *arr, void (*callback)())
   if (isReset)
   {
     isReset = false;
-    mfs[0] = 0xff;
-    mfs[1] = 0xff;
-    mfs[2] = 0xff;
-    mfs[3] = 0xff;
+    memset(mfs, 0xff, sizeof(mfs));
   }
 
   // 显示点
@@ -534,7 +507,7 @@ void Lattice::showTime(uint8_t *arr, void (*callback)())
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    System::delay_time(80, callback);
+    systemObj->delay_time(80);
   }
 }
 
@@ -543,12 +516,8 @@ void Lattice::showTime2(uint8_t *arr, void (*callback)())
   uint8_t mfs[4] = {0xff, 0xff, 0xff, 0x00};
   for (int k = 0; k < columnLength; k++)
   {
-    // 得到新的要显示的数字
-    unsigned char *tmp = getBigNumData(arr[k], 4);
-    for (int x = 0; x < 8; x++)
-    {
-      buff[k][x] = tmp[x];
-    }
+    unsigned char *tmp = getBigNumData(arr[k], 4); // 得到新的要显示的数字
+    memcpy(buff[k], tmp, 8);
     free(tmp);
   }
 
@@ -575,11 +544,7 @@ void Lattice::showTime2(uint8_t *arr, void (*callback)())
   {
     isReset = false;
     mfs[3] = 0xff;
-    // 显示icon
-    for (int i = 0; i < 8; i++)
-    {
-      buff[3][i] = icons[0][i];
-    }
+    memcpy(buff[3], icons[0], rowLength); // 这里渲染图标
   }
 
   // 显示点
@@ -591,19 +556,17 @@ void Lattice::showTime2(uint8_t *arr, void (*callback)())
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    System::delay_time(80, callback);
+    systemObj->delay_time(80);
   }
 }
 
 void Lattice::showTime3(uint8_t *arr, void (*callback)())
 {
-
-  uint8_t mfs[4] = {0x0, 0x0, 0x0, 0x0};
-  // 这里判断哪些数字要改变,哪些数字不要改变
+  uint8_t mfs[4];
+  memset(mfs, 0x0, sizeof(mfs)); // 填充数组内容
   for (int k = 0; k < columnLength; k++)
   {
-    if (k == 0 || (k == 1 && arr[0] == 0) ||
-        (k == 2 && (arr[1] == 0 && arr[0] == 0)))
+    if (k == 0 || (k == 1 && arr[0] == 0) || (k == 2 && (arr[1] == 0 && arr[0] == 0))) // 这里判断哪些数字要改变,哪些数字不要改变
     {
       mfs[k] = (arr[k] % 10 == 0) ? 0xff : 0xf;
     }
@@ -611,11 +574,8 @@ void Lattice::showTime3(uint8_t *arr, void (*callback)())
 
   if (isReset)
   {
-    isReset = false;
-    mfs[0] = 0xff;
-    mfs[1] = 0xff;
-    mfs[2] = 0xff;
-    mfs[3] = 0xff;
+    isReset = false;                // 重置初始状态
+    memset(mfs, 0xff, sizeof(mfs)); // 填充数组内容
   }
   // 这里保留不要改变的数字
   for (int i = 0; i < 8; i++)
@@ -632,14 +592,11 @@ void Lattice::showTime3(uint8_t *arr, void (*callback)())
 
   for (int i = 0; i < 16; i++)
   {
-
-    // 判断有几个数字发生了改变
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < 3; j++) // 判断有几个数字发生了改变
     {
       if (mfs[j] == 0x0)
       {
-        // 如果说没有改变则忽略
-        break;
+        break; // 如果说没有改变则忽略
       }
       uint8_t gw = arr[j] % 10, sw = arr[j] / 10;
       uint8_t geweibuff = number_font_animations[gw][i], shiweibuff = number_font_animations[sw][i];
@@ -652,14 +609,8 @@ void Lattice::showTime3(uint8_t *arr, void (*callback)())
         buff[j][((shiweibuff >> 4) & 0xf)] += ((0x80 >> (shiweibuff & 0xf)));
       }
     }
-
-    for (int i = 0; i < columnLength; i++)
-    {
-      for (int j = 0; j < rowLength; j++)
-      {
-        data[i][j] = buff[i][j];
-      }
-    }
+    // 将buff数据转移到data中去
+    memcpy(data, buff, sizeof(buff));
 
     offsetData(2, (-1 * 6));
     offsetData(1, (-1 * 4));
@@ -671,7 +622,7 @@ void Lattice::showTime3(uint8_t *arr, void (*callback)())
     data[1][2] = (data[1][2] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
     data[1][4] = (data[1][4] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
     refreshLed();
-    System::delay_time(50, callback);
+    systemObj->delay_time(50);
   }
 }
 
@@ -695,22 +646,15 @@ void Lattice::showCountDownTime(long remain, uint8_t *arr, bool showmode, bool m
   }
 
   if (isReset)
-  {
-    // 第一次进来
+  { // 第一次进来
     isReset = false;
     unsigned char *tmp = getNumData(d / 10, false);
-    for (int x = 0; x < 8; x++)
-    {
-      data[3][x] = tmp[x];
-      data[0][x] = 0x0;
-      data[1][x] = 0x0;
-    }
+    memcpy(data[3], tmp, 8);
+    memset(data[0], 0x0, 8);
+    memset(data[1], 0x0, 8);
     free(tmp);
     unsigned char *tmp2 = getNumData((d % 10) * 10, true);
-    for (int x = 0; x < 8; x++)
-    {
-      data[2][x] = tmp2[x];
-    }
+    memcpy(data[2], tmp2, 8);
     free(tmp2);
     upOrDownMove(3, 0xf0, true);
     upOrDownMove(2, 0xf0, false);
@@ -732,36 +676,26 @@ void Lattice::showCountDownTime(long remain, uint8_t *arr, bool showmode, bool m
     }
   }
 
-  // 比较蠢的做法
-  uint8_t lastoffset = (0xff >> 2) << 2;
+  uint8_t lastoffset = (0xff >> 2) << 2; // 比较蠢的做法
   uint8_t nextoffset = (lastoffset ^ 0xff) << (8 - 2);
   mfs[2] = (mfs[2] & lastoffset) + ((mfs[1] & nextoffset) >> (8 - 2));
   mfs[1] <<= 2;
-  // 显示小时数
-  unsigned char *tmp3 = getNumData(h, false);
-  for (int x = 0; x < 8; x++)
-  {
-    buff[1][x] = tmp3[x];
-  }
-  free(tmp3);
-  offsetBuff(1, -2);
-  // 显示分钟数
-  unsigned char *tmp4 = getNumData(m, false);
-  for (int x = 0; x < 8; x++)
-  {
-    buff[0][x] = tmp4[x];
-  }
-  free(tmp4);
-  // 显示点
-  data[1][3] = (data[1][3] & ((0x80 >> 6) ^ 0xff)) + (0x80 >> 6);
 
+  unsigned char *tmp3 = getNumData(h, false); // 显示小时数
+  memcpy(buff[1], tmp3, 8);
+  free(tmp3);
+  offsetBuff(1, -2);                          // 移动显示的数字
+  unsigned char *tmp4 = getNumData(m, false); // 显示分钟数
+  memcpy(buff[0], tmp4, 8);
+  free(tmp4);
+  data[1][3] = (data[1][3] & ((0x80 >> 6) ^ 0xff)) + (0x80 >> 6); // 显示点
   if (remain >= 0 && minutechange)
   {
     // 倒计时还没结束就显示动画
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff(mfs);
-      System::delay_time(80, NULL);
+      systemObj->delay_time(80);
     }
   }
   else
@@ -777,18 +711,14 @@ void Lattice::showLongNumber(uint8_t *arr)
     isReset = false;
     for (int k = 0; k < columnLength; k++)
     {
-      // 得到新的要显示的数字
-      unsigned char *tmp = getNumData(arr[k], false);
-      for (int x = 0; x < 8; x++)
-      {
-        buff[k][x] = tmp[x];
-      }
+      unsigned char *tmp = getNumData(arr[k], false); // 得到新的要显示的数字
+      memcpy(buff[k], tmp, 8);
       free(tmp);
     }
     for (int i = 0; i < rowLength; i++)
     {
       downMoveBuff();
-      System::delay_time(80, NULL);
+      systemObj->delay_time(80);
     }
   }
 }
@@ -815,31 +745,20 @@ void Lattice::showNumAndIcon(uint8_t no, uint8_t *arr)
     {
       if (arr[k] > 99)
       {
-        for (int x = 0; x < 8; x++)
-        {
-          buff[k][x] = 0x0;
-        }
+        memset(buff[k], 0x0, 8);
       }
       else
       {
-        // 得到新的要显示的数字
-        unsigned char *tmp = getNumData(arr[k], false);
-        for (int x = 0; x < 8; x++)
-        {
-          buff[k][x] = tmp[x];
-        }
+        unsigned char *tmp = getNumData(arr[k], false); // 得到新的要显示的数字
+        memcpy(buff[k], tmp, 8);
         free(tmp);
       }
     }
-    // 这里渲染图标
-    for (int i = 0; i < rowLength; i++)
-    {
-      buff[3][i] = icons[2][i];
-    }
+    memcpy(buff[3], icons[2], rowLength); // 这里渲染图标
     for (int i = 0; i < rowLength; i++)
     {
       downMoveBuff(mfs);
-      System::delay_time(80, NULL);
+      systemObj->delay_time(80);
     }
   }
 }
@@ -849,12 +768,8 @@ void Lattice::showDate2(uint8_t *arr)
   uint8_t mfs[4] = {0xf, 0x00, 0x00, 0x00};
   for (int k = 0; k < columnLength; k++)
   {
-    // 得到新的要显示的数字
-    unsigned char *tmp = getBigNumData(arr[k], 4);
-    for (int x = 0; x < 8; x++)
-    {
-      buff[k][x] = tmp[x];
-    }
+    unsigned char *tmp = getBigNumData(arr[k], 4); // 得到新的要显示的数字
+    memcpy(buff[k], tmp, 8);
     free(tmp);
   }
 
@@ -880,17 +795,9 @@ void Lattice::showDate2(uint8_t *arr)
   if (isReset)
   {
     isReset = false;
-    mfs[0] = 0xff;
-    mfs[1] = 0xff;
-    mfs[2] = 0xff;
-    mfs[3] = 0xff;
+    memset(mfs, 0xff, sizeof(mfs));
   }
-
-  // 这里渲染图标
-  for (int i = 0; i < rowLength; i++)
-  {
-    buff[3][i] = icons[3][i];
-  }
+  memcpy(buff[3], icons[3], rowLength); // 这里渲染图标
 
   // 显示点
   buff[1][4] = (buff[1][4] & ((0x80 >> 3) ^ 0xff)) + (0x80 >> 3);
@@ -899,7 +806,7 @@ void Lattice::showDate2(uint8_t *arr)
   for (int i = 0; i < 8; i++)
   {
     downMoveBuff(mfs);
-    System::delay_time(80, NULL);
+    systemObj->delay_time(80);
   }
 }
 
@@ -935,7 +842,7 @@ void Lattice::showDate3(uint8_t *arr)
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      System::delay_time(80, NULL);
+      systemObj->delay_time(80);
     }
   }
 }
@@ -962,19 +869,13 @@ void Lattice::showTemperature(uint8_t *arr)
     {
       offsetBuff(k, (-1 * (k * 2 + 2)));
     }
-    // 显示点
-    buff[1][5] = (buff[1][5] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4);
-    // 在第三个点阵处显示温图案
-    for (int i = 0; i < 8; i++)
-    {
-      buff[3][i] = icons[1][i];
-    }
+    buff[1][5] = (buff[1][5] & ((0x80 >> 4) ^ 0xff)) + (0x80 >> 4); // 显示点
+    memcpy(buff[3], icons[1], rowLength);                           // 在第三个点阵处显示温图案
     offsetBuff(3, 2);
-
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      System::delay_time(80, NULL);
+      systemObj->delay_time(80);
     }
   }
 }
@@ -1025,13 +926,8 @@ void Lattice::clearShow()
 
 void Lattice::showFull()
 {
-  for (int i = 0; i < columnLength; i++)
-  {
-    for (int j = 0; j < rowLength; j++)
-    {
-      data[i][j] = 0xff;
-    }
-  }
+  // 全亮
+  memset(data, 0xff, sizeof(data));
   refreshLed();
 }
 
@@ -1046,33 +942,24 @@ void Lattice::showOtaUpdate(uint8_t num)
 {
   Serial.println("update num");
   Serial.println(num);
-  uint8_t mfs[4] = {0x00, 0x00, 0x00, 0x00};
+  uint8_t mfs[4];
+  memset(mfs, 0x0, sizeof(mfs));
   if (isReset)
   {
     isReset = false;
     // 如果是第一次进来就显示默认数据
-    for (int i = 0; i < columnLength; i++)
-    {
-      for (int j = 0; j < rowLength; j++)
-      {
-        buff[i][j] = otaicon[i][j];
-      }
-    }
+    memcpy(buff, otaicon, sizeof(otaicon));
     for (int i = 0; i < 8; i++)
     {
       downMoveBuff();
-      System::delay_time(50, NULL);
+      systemObj->delay_time(50);
     }
   }
   else
   {
     mfs[1] = 0xff;
-    // 得到新的要显示的数字
-    unsigned char *tmp = getNumData(num, false);
-    for (int i = 0; i < rowLength; i++)
-    {
-      data[1][i] = tmp[i];
-    }
+    unsigned char *tmp = getNumData(num, false); // 得到新的要显示的数字
+    memcpy(data[1], tmp, 8);
     free(tmp);
     refreshLed();
   }

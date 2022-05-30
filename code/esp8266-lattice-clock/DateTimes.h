@@ -1,9 +1,10 @@
 #ifndef DATETIMES_H
 #define DATETIMES_H
 
-#include "Dht11.h"
 #include "EEPROMTool.h"
+#include "System.h"
 #include <DS3231.h>
+#include <SimpleDHT.h>
 #include <Wire.h>
 
 struct Times
@@ -45,7 +46,7 @@ private:
    * @brief Dht11 温度传感器对象
    *
    */
-  Dht11 *dht11;
+  SimpleDHT11 dht11;
 
   /**
    * @brief 时间结构体
@@ -61,14 +62,19 @@ private:
 
 public:
   /**
-   * 构造函数
+   * @brief 温度
+   *
    */
-  DateTimes();
-
+  byte temperature = 0;
+  /**
+   * @brief 湿度
+   *
+   */
+  byte humidity = 0;
   /**
    * 构造函数
    */
-  DateTimes(Dht11 *dht11obj);
+  DateTimes();
 
   /**
    * @brief 初始化

@@ -1,11 +1,9 @@
 #include "DateTimes.h"
 
-DateTimes::DateTimes() { Wire.begin(); }
-
-DateTimes::DateTimes(Dht11 *dht11obj)
+DateTimes::DateTimes()
 {
-  dht11 = dht11obj;
   Wire.begin();
+  dht11 = SimpleDHT11(16);
 }
 
 /**
@@ -60,7 +58,14 @@ int DateTimes::getTemperature()
   // 如果从芯片取到的年数据为85的时候,表示这个数据不是从芯片里面取到的,所以就需要换成我们手动的
   if (ds3231.getMonth(century) == 85)
   {
-    return dht11->get_tah().temperature * 100; //
+    if (System::is_overtime(3000)) // 这里三秒获取一次温度信息
+    {
+      if (dht11.read(&temperature, &humidity, NULL) != SimpleDHTErrSuccess)
+      {
+        // 这里表示获取温度失败,暂时不做任何处理
+      }
+    }
+    return temperature * 100;
   }
   return ds3231.getTemperature() * 100;
 }

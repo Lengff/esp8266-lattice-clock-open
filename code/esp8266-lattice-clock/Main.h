@@ -1,10 +1,10 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include "DateTimes.h"
-#include "Dht11.h"
 #include "EEPROMTool.h"
 #include "Functions.h"
 #include "HttpTool.h"
+#include "LatticePlus.h"
 #include "Otas.h"
 #include "PilotLight.h"
 #include "System.h"
@@ -18,10 +18,10 @@
 
 Ticker timestampticker;                                  // 手动累加时间戳任务
 Ticker httptoolticker;                                   // 每五秒钟处理一次http请求标志
-Dht11 dht11 = Dht11();                                   // DHT11温度传感器对象
-DateTimes datetimes = DateTimes(&dht11);                 // 时间管理对象
+System systems;                                          // 系统内置对象
+DateTimes datetimes = DateTimes();                       // 时间管理对象
 HttpTool httptool;                                       // HTTP 请求对象
-Lattice lattice = Lattice();                             // 点阵显示对象
+LatticePlus lattice = LatticePlus(&systems);             // 点阵显示对象
 OneButton btnA = OneButton(D8, false, false);            // 按钮对象
 PilotLight pilotLight = PilotLight();                    // 控制LED亮灭对象
 Wifis wifis = Wifis(&lattice, &pilotLight);              // wifi对象
@@ -39,9 +39,9 @@ bool isSleepMode = false;                                // 标记当前是否�
  */
 void initStatus()
 {
+    powerFlag = -1;
     if (functions.getCurrPower() == CUSTOM && functions.getCurrMode() != 0) // 如果是自定义显示功能条件下(且模式为显示模式),就不重置屏幕显示
     {
-        powerFlag = -1;
         return;
     }
     else if (functions.getCurrPower() == COUNTDOWN) // 如果是倒计时功能条件下,则进入倒计时相关逻辑操作
@@ -51,7 +51,6 @@ void initStatus()
         displayData[2] = 2;
         powerFlag2 = 1; // 这里一定是到大于0的,后续会根据这个值是否为0来判断逻辑
     }
-    powerFlag = -1;
     lattice.reset();
 }
 
@@ -153,12 +152,8 @@ void setCountdown(uint8_t *data)
  */
 void initSleepTime()
 {
-    // 先从内存中加载
-    uint8_t *t = EEPROMTool.loadData(SLEEP_TIME, 5);
-    for (int i = 0; i < 5; i++)
-    {
-        sleepTime[i] = t[i];
-    }
+    uint8_t *t = EEPROMTool.loadData(SLEEP_TIME, 5); // 先从内存中加载
+    memcpy(sleepTime, t, 4);
     free(t);
 }
 
@@ -170,10 +165,7 @@ void initSleepTime()
 void setSleepTime(uint8_t *data)
 {
     // 这里的做法目前是比较简单的,data就是一个四位长度的数组,第0和1位表示开始时间的小时和分钟,第2和3位表示结束的小时和分钟
-    for (int i = 0; i < 5; i++)
-    {
-        sleepTime[i] = data[i];
-    }
+    memcpy(sleepTime, data, 4);
     EEPROMTool.saveData(data, SLEEP_TIME, 5); // 将数据设置EEPROM中去
     // todo 这里为了交互友好,最好还是显示一个config ok 之类的提示
 }
@@ -181,14 +173,14 @@ void setSleepTime(uint8_t *data)
 void sleepTimeLoop()
 {
     Times times = datetimes.getTimes();
-    uint8_t starttime = sleepTime[0] * 100 + sleepTime[1]; // 开始时间
-    uint8_t endtime = sleepTime[2] * 100 + sleepTime[3];   // 结束时间
-    if (starttime == endtime)                              // 如果开始时间和结束时间是一样的话,就什么都不做
+    int starttime = sleepTime[0] * 100 + sleepTime[1]; // 开始时间
+    int endtime = sleepTime[2] * 100 + sleepTime[3];   // 结束时间
+    if (starttime == endtime)                          // 如果开始时间和结束时间是一样的话,就什么都不做
     {
         return;
     }
-    uint8_t currtime = times.h * 100 + times.m; // 当前时间
-    if (starttime < endtime)                    // 如果开始时间小于结束时间,则只需要判断当前时间是否在开始时间和结束时间的区间范围内
+    int currtime = times.h * 100 + times.m; // 当前时间
+    if (starttime < endtime)                // 如果开始时间小于结束时间,则只需要判断当前时间是否在开始时间和结束时间的区间范围内
     {
         if (currtime >= starttime && currtime < endtime) // 如果时间在休眠时间范围内则休眠
         {
@@ -271,12 +263,9 @@ void resetTime(uint8_t *data)
  */
 void setUserData(uint8_t *data)
 {
-    for (int i = 0; i < 32; i++) // 切换用户自定义
-    {
-        lattice.latticeSetting.userData[i] = data[i];
-    }
-    functions.setPowerAndMode(CUSTOM, 0); // 重置功能
-    initStatus();                         // 重置状态
+    memcpy(lattice.latticeSetting.userData, data, sizeof(data)); // 切换用户自定义
+    functions.setPowerAndMode(CUSTOM, 0);                        // 重置功能
+    initStatus();                                                // 重置状态
 }
 
 /**
@@ -286,28 +275,19 @@ void setUserData(uint8_t *data)
 void showCountDown()
 {
     bool showmode = true, minutechange = false;
-    long countdown = datetimes.getCountdownTimestamp();
-    long timestamp = datetimes.getTimestamp() - 8 * 3600;
+    long countdown = datetimes.getCountdownTimestamp();   // 根据倒计时时间戳获取截止日期
+    long timestamp = datetimes.getTimestamp() - 8 * 3600; // 获取当前日期
     if (countdown - timestamp == powerFlag2 || powerFlag2 <= 0)
     {
-        // 时间没有发生改变,则跳过
-        return;
+        return; // 时间没有发生改变,则跳过
     }
-    // 倒计时时间戳 - 当前时间戳时间小于一天则 按 时分秒 来进行倒计时
-    if ((countdown - timestamp) < (24 * 3600))
+    if ((countdown - timestamp) < (24 * 3600)) // 倒计时时间戳 - 当前时间戳时间小于一天则 按 时分秒 来进行倒计时
     {
         showmode = false;
         minutechange = true;
-        // 倒计时小于一天,则使用时分秒的显示模式
-        if ((countdown - timestamp) == powerFlag2)
+        if (((countdown - timestamp) / 3600) != (powerFlag2 / 3600)) // 倒计时小于一天,则使用时分秒的显示模式
         {
-            // 这里表示秒钟数没有发生改变
-            return;
-        }
-        if (((countdown - timestamp) / 3600) != (powerFlag2 / 3600))
-        {
-            // 倒计时时钟发生改变
-            lattice.reset();
+            lattice.reset(); // 倒计时时钟发生改变
             displayData[0] = 0;
             displayData[1] = 1;
             displayData[2] = 2;
@@ -316,20 +296,16 @@ void showCountDown()
     else
     {
         showmode = true;
-        // 这里判断天数是否发生改变,如果天数发生改变则需要重置一下显示
-        if (((countdown - timestamp) / 3600 / 24) != (powerFlag2 / 3600 / 24))
+        if (((countdown - timestamp) / 3600 / 24) != (powerFlag2 / 3600 / 24)) // 这里判断天数是否发生改变,如果天数发生改变则需要重置一下显示
         {
-            lattice.reset();
-            // 倒计时日发生改变
+            lattice.reset(); // 倒计时日发生改变
             displayData[0] = 0;
             displayData[1] = 1;
             displayData[2] = 2;
         }
-        // 这里判断分钟数是否发生改变,如果分钟数发生改变,则需要刷新显示
-        if (((countdown - timestamp) / 60) != (powerFlag2 / 60))
+        if (((countdown - timestamp) / 60) != (powerFlag2 / 60)) // 这里判断分钟数是否发生改变,如果分钟数发生改变,则需要刷新显示
         {
-            // 这里表示分钟数值发生改变
-            minutechange = true;
+            minutechange = true; // 这里表示分钟数值发生改变
         }
     }
     powerFlag2 = (countdown - timestamp) < 1 ? 0 : (countdown - timestamp);
@@ -384,8 +360,7 @@ void showTemperature()
     int t = datetimes.getTemperature();
     if (t == powerFlag)
     {
-        // 温度没有发生改变则忽略
-        return;
+        return; // 温度没有发生改变则忽略
     }
     powerFlag = t;
     lattice.reset();
@@ -440,12 +415,10 @@ void showUserData(uint8_t showmode)
         lattice.showUserData(showmode); // 优先模式
         return;
     }
-    if (millis() - powerFlag < 100 + (lattice.latticeSetting.speed * 10)) // 如果当前时间减上次刷新时间小于用户设置的速度,则不刷新
+    if (System::is_overtime(100 + (lattice.latticeSetting.speed * 10)))
     {
-        return; // 时间间隔小于100ms就不执行
+        lattice.showUserData(showmode); // 刷新显示内容
     }
-    powerFlag = millis();
-    lattice.showUserData(showmode); // 刷新显示内容
 }
 
 /**

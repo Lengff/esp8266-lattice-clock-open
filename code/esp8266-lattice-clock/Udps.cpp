@@ -5,7 +5,7 @@ Udps::Udps()
   // todo
 }
 
-Udps::Udps(DateTimes *datetimesobj, Lattice *latticeobj, PilotLight *pilotLightobj)
+Udps::Udps(DateTimes *datetimesobj, LatticePlus *latticeobj, PilotLight *pilotLightobj)
 {
   datetimes = datetimesobj;
   lattice = latticeobj;
@@ -45,11 +45,11 @@ long Udps::getNtpTimestamp()
     udp.read(packetBuffer, NTP_PACKET_SIZE); // 解析UDP数据包中的数据
     // todo这里获取到的时间其实不是真实的时间,实际上还包含了网络延时的,但是为了方便,这里我们忽略这个因素的存在
     unsigned long highWord = word(packetBuffer[40], packetBuffer[41]); // 取出t2时间的高位和低位数据拼凑成以秒为单位的时间戳
-    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-    unsigned long secsSince1900 = highWord << 16 | lowWord; // 拼凑成以秒为单位的时间戳(时间戳的记录以秒的形式从 1900-01-01 00:00:00算起)
-    const unsigned long seventyYears = 2208988800UL;
-    unsigned long timestamp = secsSince1900 - seventyYears; // 前面的32bit是时间戳的秒数(是用1900-01-01 00:00:00开始的秒数,但是我们的是1970年,所以需要减掉2208988800秒)
-    timestamp = timestamp + 8 * 60 * 60;                    // 这里加8 是因为时区的问题,如果不加8,得到的结果就会是其他时区的时间
+    unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);  //
+    unsigned long secsSince1900 = highWord << 16 | lowWord;            // 拼凑成以秒为单位的时间戳(时间戳的记录以秒的形式从 1900-01-01 00:00:00算起)
+    const unsigned long seventyYears = 2208988800UL;                   //
+    unsigned long timestamp = secsSince1900 - seventyYears;            // 前面的32bit是时间戳的秒数(是用1900-01-01 00:00:00开始的秒数,但是我们的是1970年,所以需要减掉2208988800秒)
+    timestamp = timestamp + 8 * 60 * 60;                               // 这里加8 是因为时区的问题,如果不加8,得到的结果就会是其他时区的时间
     return timestamp;
   }
 }
@@ -58,9 +58,9 @@ Udpdata Udps::userLatticeLoop(uint8_t power, uint8_t mode, uint8_t version)
 {
   Udpdata udpdata;
   udpdata.lh = 0;
-  int packetSize = udp.parsePacket(); //解析Udp数据包
-  if (packetSize)                     //解析包不为空
-  {
+  int packetSize = udp.parsePacket();         //解析Udp数据包
+  if (packetSize)                             //解析包不为空
+  {                                           //
     pilotLight->flashing(100);                // 每次接收到UDP数据的时候都闪烁一下LED灯
     memset(packetBuffer, 0, NTP_PACKET_SIZE); //每次都先清空掉原有的数据包
     udp.read(packetBuffer, NTP_PACKET_SIZE);  // 读取UDP数据

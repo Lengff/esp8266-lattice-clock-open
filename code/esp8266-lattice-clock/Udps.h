@@ -2,7 +2,7 @@
 #define UDPS_H
 
 #include "DateTimes.h"
-#include "Lattice.h"
+#include "LatticePlus.h"
 #include "PilotLight.h"
 #include <DS3231.h>
 #include <ESP8266WiFi.h>
@@ -27,7 +27,7 @@ private:
    * @brief 显示对象
    *
    */
-  Lattice *lattice;
+  LatticePlus *lattice;
 
   /**
    * @brief 状态指示灯对象
@@ -80,7 +80,7 @@ public:
    *
    * @param datetimes
    */
-  Udps(DateTimes *datetimesobj, Lattice *latticeobj, PilotLight *pilotLightobj);
+  Udps(DateTimes *datetimesobj, LatticePlus *latticeobj, PilotLight *pilotLightobj);
 
   /**
    * @brief 初始化UDP信息

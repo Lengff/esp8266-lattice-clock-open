@@ -163,7 +163,7 @@ struct LatticeSetting
 
 class Lattice
 {
-private:
+protected:
     /**
      * lc对象
      */
@@ -194,10 +194,17 @@ private:
      * 缓冲数组
      */
     unsigned char buff[4][rowLength];
+
+    /**
+     * @brief system对象
+     *
+     */
+    System *systemObj;
+
     /**
      * 初始化点阵
      */
-    void initLattice();
+    void initData();
 
     /**
      * 刷新显示

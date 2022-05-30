@@ -5,7 +5,7 @@ Wifis::Wifis()
 {
 }
 
-Wifis::Wifis(Lattice *latticeobj, PilotLight *pilotLightobj)
+Wifis::Wifis(LatticePlus *latticeobj, PilotLight *pilotLightobj)
 {
   lattice = latticeobj;
   pilotLight = pilotLightobj;
