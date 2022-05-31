@@ -318,21 +318,21 @@ public:
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
      * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime(uint8_t *arr, void (*callback)());
+    void showTime(uint8_t *arr);
 
     /**
      * 显示时间模式2
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
      * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime2(uint8_t *arr, void (*callback)());
+    void showTime2(uint8_t *arr);
 
     /**
      * 显示时间模式2
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
      * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime3(uint8_t *arr, void (*callback)());
+    void showTime3(uint8_t *arr);
 
     /**
      * 显示倒计时

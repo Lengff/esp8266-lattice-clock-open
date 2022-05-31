@@ -115,13 +115,14 @@ void miotQuery(int32_t queryCode)
  */
 void initBlinker()
 {
-    powerBtn.attach(miotPowerState);              // 注册开关按键
-    brightSlider.attach(brightCallback);          // 注册亮度调节
-    directBtn.attach(directionCallback);          // 注册方向按钮回到
-    powerSlider.attach(powerCallback);            // 注册功能切换
-    BlinkerMIOT.attachPowerState(miotPowerState); // 注册屏幕开关的回调
-    BlinkerMIOT.attachBrightness(miotBright);     // 注册亮度控制的回调
-    BlinkerMIOT.attachQuery(miotQuery);           // 注册小爱同学语音状态查询
+    Blinker.begin(auth, WiFi.SSID().c_str(), WiFi.psk().c_str()); // 初始化Blinker 这里只有在连接wifi成功的情况下才能用
+    powerBtn.attach(miotPowerState);                              // 注册开关按键
+    brightSlider.attach(brightCallback);                          // 注册亮度调节
+    directBtn.attach(directionCallback);                          // 注册方向按钮回到
+    powerSlider.attach(powerCallback);                            // 注册功能切换
+    BlinkerMIOT.attachPowerState(miotPowerState);                 // 注册屏幕开关的回调
+    BlinkerMIOT.attachBrightness(miotBright);                     // 注册亮度控制的回调
+    BlinkerMIOT.attachQuery(miotQuery);                           // 注册小爱同学语音状态查询
 }
 
 #endif

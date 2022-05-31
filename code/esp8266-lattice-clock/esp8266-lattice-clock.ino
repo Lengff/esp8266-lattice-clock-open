@@ -3,7 +3,6 @@
 // #include "BlinkerSupport.h"
 // 然后在step函数中取消注释掉那段initBlinker();和Blinker.run();代码即可
 // 关于这段的说明请参考：https://gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
-// #include "HomeKit.h"
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 
@@ -98,23 +97,22 @@ void showTime(uint8_t showmode)
   displayData[2] = times.h;
   if (showmode == 0)
   {
-    lattice.showTime3(displayData, showTimeCallback);
-    powerFlag = times.s;
+    lattice.showTime3(displayData);
   }
   else if (showmode == 1)
   {
-    lattice.showTime(displayData, showTimeCallback);
-    powerFlag = times.s;
+    lattice.showTime(displayData);
   }
   else
   {
-    if (times.s == 0 || powerFlag == -1)
+    if (times.s == 0 || powerFlag2 == -1)
     {
+      powerFlag2 = 0;
       displayData[0] = times.m % 10;
       displayData[1] = times.m / 10;
       displayData[2] = times.h % 10;
       displayData[3] = times.h / 10;
-      lattice.showTime2(displayData, showTimeCallback);
+      lattice.showTime2(displayData);
     }
     if (times.s % 2 == 0)
     {
@@ -124,8 +122,8 @@ void showTime(uint8_t showmode)
     {
       lattice.reversalUD(3);
     }
-    powerFlag = times.s;
   }
+  powerFlag = times.s;
 }
 
 /**

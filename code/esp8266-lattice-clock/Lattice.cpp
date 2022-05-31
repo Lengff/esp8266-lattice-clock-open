@@ -466,7 +466,7 @@ void Lattice::downMoveBuff(uint8_t *arr)
   refreshLed();
 }
 
-void Lattice::showTime(uint8_t *arr, void (*callback)())
+void Lattice::showTime(uint8_t *arr)
 {
   uint8_t mfs[4] = {0x0, 0x0, 0x0, 0x0};
   for (int k = 0; k < columnLength; k++)
@@ -511,7 +511,7 @@ void Lattice::showTime(uint8_t *arr, void (*callback)())
   }
 }
 
-void Lattice::showTime2(uint8_t *arr, void (*callback)())
+void Lattice::showTime2(uint8_t *arr)
 {
   uint8_t mfs[4] = {0xff, 0xff, 0xff, 0x00};
   for (int k = 0; k < columnLength; k++)
@@ -560,7 +560,7 @@ void Lattice::showTime2(uint8_t *arr, void (*callback)())
   }
 }
 
-void Lattice::showTime3(uint8_t *arr, void (*callback)())
+void Lattice::showTime3(uint8_t *arr)
 {
   uint8_t mfs[4];
   memset(mfs, 0x0, sizeof(mfs)); // 填充数组内容

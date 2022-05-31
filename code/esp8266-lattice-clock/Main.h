@@ -40,6 +40,7 @@ bool isSleepMode = false;                                // 标记当前是否�
 void initStatus()
 {
     powerFlag = -1;
+    powerFlag2 = -1;
     if (functions.getCurrPower() == CUSTOM && functions.getCurrMode() != 0) // 如果是自定义显示功能条件下(且模式为显示模式),就不重置屏幕显示
     {
         return;
