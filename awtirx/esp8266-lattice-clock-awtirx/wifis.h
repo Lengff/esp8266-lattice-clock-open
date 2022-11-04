@@ -2,7 +2,7 @@
 #define WIFIS_H
 
 #include "EEPROMTool.h"
-#include "Lattice.h"
+#include "LatticePlus.h"
 #include "PilotLight.h"
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
@@ -24,7 +24,7 @@ private:
    * @brief 显示对象
    *
    */
-  Lattice *lattice;
+  LatticePlus *lattice;
 
   /**
    * @brief 状态指示灯对象
@@ -75,7 +75,7 @@ public:
    * @param lattice
    * @param pilotLight
    */
-  Wifis(Lattice *latticeobj, PilotLight *pilotLightobj);
+  Wifis(LatticePlus *latticeobj, PilotLight *pilotLightobj);
 
   /**
    * @brief 连接wifi

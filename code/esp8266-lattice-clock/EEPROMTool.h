@@ -6,6 +6,10 @@
 #define EEPROM_BEGIN 1536
 #define EEPROM_LENGTH 50
 
+/**
+ * @brief todo 这里可以优化，直接改成结构体
+ *
+ */
 enum EEPROM_ADDRESS_ENUM
 {
 
@@ -17,7 +21,8 @@ enum EEPROM_ADDRESS_ENUM
   BILIBILI_UID = EEPROM_BEGIN + 10,   // 从10到14来存储bilibilii的UID
   COUNTDOWN_TIME = EEPROM_BEGIN + 15, // 从15到19来存储倒计时时间戳
   H12_ADDR = EEPROM_BEGIN + 20,       // 12位存放H12标记 \\\ 这里占位,暂无任何意义
-  ANNI_DAY = EEPROM_BEGIN + 21        // 10,11存放纪念日 月和 日 \\\ 这里占位,暂无任何意义
+  ANNI_DAY = EEPROM_BEGIN + 21,       // 10,11存放纪念日 月和 日 \\\ 这里占位,暂无任何意义
+  LIGHT_VAL = EEPROM_BEGIN + 22      // 存放亮度的
 };
 
 struct EEPROMTOOLS

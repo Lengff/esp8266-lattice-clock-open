@@ -1,6 +1,6 @@
 #ifndef OTAS_H
 #define OTAS_H
-#include "Lattice.h"
+#include "LatticePlus.h"
 #include "PilotLight.h"
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -13,7 +13,7 @@ private:
    * @brief 显示内容对象
    *
    */
-  Lattice *lattice;
+  LatticePlus *lattice;
   /**
    * @brief 状态指示灯对象
    *
@@ -53,7 +53,7 @@ private:
 public:
   Otas();
 
-  Otas(Lattice *latticeobj, PilotLight *pilotLightobj);
+  Otas(LatticePlus *latticeobj, PilotLight *pilotLightobj);
 
   /**
    * @brief

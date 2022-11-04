@@ -3,7 +3,7 @@ Otas *Otas::s_otas;
 
 Otas::Otas() { s_otas = this; }
 
-Otas::Otas(Lattice *latticeobj, PilotLight *pilotLightobj)
+Otas::Otas(LatticePlus *latticeobj, PilotLight *pilotLightobj)
 {
     lattice = latticeobj;
     pilotLight = pilotLightobj;

@@ -5,7 +5,7 @@ Udps::Udps()
   // todo
 }
 
-Udps::Udps(DateTimes *datetimesobj, Lattice *latticeobj, PilotLight *pilotLightobj)
+Udps::Udps(DateTimes *datetimesobj, LatticePlus *latticeobj, PilotLight *pilotLightobj)
 {
   datetimes = datetimesobj;
   lattice = latticeobj;
@@ -116,7 +116,7 @@ Udpdata Udps::userLatticeLoop(uint8_t power, uint8_t mode, uint8_t version)
  */
 void Udps::updateTime()
 {
-  int count = 5;               // 一共尝试五次
+  int count = 30;               // 一共尝试五次
   sendNTPpacket();             // 向NTP服务器发请求,先发送更新时间的操作
   int lastSendTime = millis(); // 记录上一次发送更新时间的时间戳
   while (true)                 // 这里用一个死循环来搞定,先发送更新时间的操作

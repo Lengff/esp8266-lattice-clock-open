@@ -191,6 +191,7 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
+  lightLoop();
   if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
   {
     // Blinker.run();

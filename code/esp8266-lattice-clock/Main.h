@@ -240,6 +240,39 @@ void sleepTimeLoop()
 }
 
 /**
+ * @brief 初始化光敏电阻配置的值
+ *
+ */
+void initLight()
+{
+    uint8_t t = EEPROMTool.loadDataOne(LIGHT_VAL); // 先从内存中加载
+    lattice.latticeSetting.light = t;
+}
+
+/**
+ * @brief 设置光敏电阻配置的值
+ *
+ * @param data
+ */
+void setLight(uint8_t data)
+{
+    EEPROMTool.saveDataOne(data, LIGHT_VAL); // 将数据设置EEPROM中去
+}
+
+void lightLoop()
+{
+    if (analogRead(A0) < lattice.latticeSetting.light)
+    {
+        lattice.shutdown(true); // 休眠操作(目前就是把屏幕熄灭)
+    }
+    else
+    {
+        lattice.shutdown(false);                                         // 退出休眠操作(目前就是把屏幕点亮)
+        lattice.setBrightness(lattice.latticeSetting.brightness, false); // 亮度不为0则将设置屏幕亮度为指定的屏幕亮度
+    }
+}
+
+/**
  * @brief 重置时间
  * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
  * @param data
@@ -264,9 +297,9 @@ void resetTime(uint8_t *data)
  */
 void setUserData(uint8_t *data)
 {
-    memcpy(lattice.latticeSetting.userData, data, sizeof(data)); // 切换用户自定义
-    functions.setPowerAndMode(CUSTOM, 0);                        // 重置功能
-    initStatus();                                                // 重置状态
+    memcpy(lattice.latticeSetting.userData, data, 32); // 切换用户自定义
+    functions.setPowerAndMode(CUSTOM, 0);              // 重置功能
+    initStatus();                                      // 重置状态
 }
 
 /**

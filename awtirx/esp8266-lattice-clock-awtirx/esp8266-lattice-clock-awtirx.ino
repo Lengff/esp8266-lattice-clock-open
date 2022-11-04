@@ -1,9 +1,8 @@
 #include "Main.h"
-// 这里加了一个点灯科技的代码支持，假如说你想用点灯科技，则可以注释掉下面这段代码
+// 这里加了一个点灯科技的代码支持，假如说你想用点灯科技，则可以取消注释掉下面这段代码
 // #include "BlinkerSupport.h"
-// 然后在step函数中注释掉那段initBlinker();和Blinker.run();代码即可
+// 然后在step函数中取消注释掉那段initBlinker();和Blinker.run();代码即可
 // 关于这段的说明请参考：https://gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
-// #include "HomeKit.h"
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 
@@ -12,8 +11,8 @@
  */
 void handleUdpData()
 {
-  Udpdata udpdata = udps.userLatticeLoop(functions.getCurrPower(), functions.getCurrMode(), LATTICE_CLOCK_VERSION);
-  if (udpdata.lh < 1) // 数据长度小于1则表示没有接收到任何数据
+  Udpdata udpdata = udps.userLatticeLoop(functions.getCurrPower(), functions.getCurrMode(), LATTICE_CLOCK_VERSION); //
+  if (udpdata.lh < 1)                                                                                               // 数据长度小于1则表示没有接收到任何数据
   {
     // 没有收到任何UDP数据
     return;
@@ -93,29 +92,28 @@ void showTime(uint8_t showmode)
   {
     return; // 如果秒钟数没有改变,则不执行方法
   }
-  powerFlag = times.s;
   displayData[0] = times.s;
   displayData[1] = times.m;
   displayData[2] = times.h;
   if (showmode == 0)
   {
-    lattice.showTime3(displayData, showTimeCallback);
+    lattice.showTime3(displayData);
   }
   else if (showmode == 1)
   {
-    lattice.showTime(displayData, showTimeCallback);
+    lattice.showTime(displayData);
   }
   else
   {
-    if (times.s == 0 || powerFlag == -1)
+    if (times.s == 0 || powerFlag2 == -1)
     {
+      powerFlag2 = 0;
       displayData[0] = times.m % 10;
       displayData[1] = times.m / 10;
       displayData[2] = times.h % 10;
       displayData[3] = times.h / 10;
-      lattice.showTime2(displayData, showTimeCallback);
+      lattice.showTime2(displayData);
     }
-    powerFlag = times.s;
     if (times.s % 2 == 0)
     {
       lattice.reversalLR(3);
@@ -125,6 +123,7 @@ void showTime(uint8_t showmode)
       lattice.reversalUD(3);
     }
   }
+  powerFlag = times.s;
 }
 
 /**
@@ -156,7 +155,7 @@ void handlePower()
     System::reset_system(); // 重置系统
     break;
   case RESETTIME:
-    resetTime(displayData); // 重置时间,这里是随便传的一个参数,不想重新声明参数
+    resetTime(NULL); // 重置时间,这里是随便传的一个参数,不想重新声明参数
     break;
   default:
     break; // 默认不做任何处理
@@ -165,6 +164,7 @@ void handlePower()
 
 void setup()
 {
+  lattice.boot_animation();                                         // 显示开机动画
   Serial.begin(115200);                                             // 初始化串口波特率
   EEPROM.begin(4096);                                               //
   WiFi.hostname("lattice-clock");                                   //设置ESP8266设备名
@@ -173,15 +173,15 @@ void setup()
   udps.initudp();                                                   // 初始化UDP客户端
   httptoolticker.attach(5 * 6 * 1000, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
   timestampticker.attach(1, DateTimes::timestampAdd);               // 每一秒叠加一次秒数
-  if (!wifis.isApMode())
-  {                                // 如果wifi模式为连接wifi的模式则联网矫正时间
-    resetTime(NULL);               // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
-    httptool.updateBilibiliFlag(); // 更新bilibili粉丝数量前,需要重置一下flag
-    httptool.bilibiliFans();       // 刷新bilibili粉丝数量
+  if (!wifis.isApMode())                                            // 如果wifi模式为连接wifi的模式则联网矫正时间
+  {                                                                 //
+    resetTime(NULL);                                                // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.updateBilibiliFlag();                                  // 更新bilibili粉丝数量前,需要重置一下flag
+    httptool.bilibiliFans();                                        // 刷新bilibili粉丝数量
     // initBlinker();
   }
   initSleepTime(); // 初始化休眠时间
-  delay(500);
+  systems.init_callback(showTimeCallback);
 }
 
 void loop()
@@ -191,8 +191,9 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
-  if (WiFi.status() == WL_CONNECTED)
-  { // 确保wifi网络是可用的,不可用则忽略
+  lightLoop();
+  if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
+  {
     // Blinker.run();
   }
 }

@@ -159,6 +159,12 @@ struct LatticeSetting
      * 速度
      */
     uint8_t speed = 1;
+
+    /**
+     * @brief 光敏值（光敏电阻的值） （0 - 255）
+     *
+     */
+    uint8_t light = 20;
 };
 
 class Lattice

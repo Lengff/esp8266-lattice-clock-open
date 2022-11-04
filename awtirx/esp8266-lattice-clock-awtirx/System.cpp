@@ -4,6 +4,11 @@ System::System()
 {
 }
 
+void System::init_callback(void (*callback)())
+{
+    callbackMethod = callback;
+}
+
 void System::reset_system()
 {
     EEPROMTool.clearAll(); // 删除EEPRON信息
@@ -32,7 +37,7 @@ long System::uint8t_to_long(uint8_t *data, int length)
  * @param ms
  * @param callback
  */
-void System::delay_time(int ms, void (*callback)())
+void System::delay_time(int ms)
 {
     int timeFlag = millis();
     while (true)
@@ -41,9 +46,19 @@ void System::delay_time(int ms, void (*callback)())
         {
             break;
         }
-        if (callback != NULL)
+        if (callbackMethod != NULL)
         {
-            callback();
+            callbackMethod();
         }
     }
+}
+
+bool System::is_overtime(int time)
+{
+    if (millis() - tmp_value < time)
+    {
+        return false;
+    }
+    tmp_value = millis();
+    return true;
 }

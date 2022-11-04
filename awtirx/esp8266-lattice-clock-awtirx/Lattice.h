@@ -158,11 +158,17 @@ struct LatticeSetting
      * 速度
      */
     uint8_t speed = 1;
+
+    /**
+     * @brief 光敏值（光敏电阻的值） （0 - 255）
+     *
+     */
+    uint8_t light = 20;
 };
 
 class Lattice
 {
-private:
+protected:
     /**
      * 建立光带leds
      */
@@ -193,10 +199,17 @@ private:
      * 缓冲数组
      */
     unsigned char buff[4][rowLength];
+
+    /**
+     * @brief system对象
+     *
+     */
+    System *systemObj;
+
     /**
      * 初始化点阵
      */
-    void initLattice();
+    void initData();
 
     /**
      * 刷新显示
@@ -314,32 +327,28 @@ public:
     /**
      * 动态显示时间
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
-     * ps:
-     * 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime(uint8_t *arr, void (*callback)());
+    void showTime(uint8_t *arr);
 
     /**
      * 显示时间模式2
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
-     * ps:
-     * 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime2(uint8_t *arr, void (*callback)());
+    void showTime2(uint8_t *arr);
 
     /**
      * 显示时间模式2
      * 这里目前还没有好的解决方法, 所以就使用了一些简单粗暴的方式来做
-     * ps:
-     * 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
+     * ps: 这里为啥还要搞一个回调函数，既然要有好看的动画就难免需要有点牺牲在里面，所以这里的回调就是处理我们小程序的UDP请求或者是MQTT之类的
      */
-    void showTime3(uint8_t *arr, void (*callback)());
+    void showTime3(uint8_t *arr);
 
     /**
      * 显示倒计时
      */
-    void showCountDownTime(long remain, uint8_t *arr, bool showmode,
-                           bool minutechange);
+    void showCountDownTime(long remain, uint8_t *arr, bool showmode, bool minutechange);
 
     /**
      * 显示长的数字

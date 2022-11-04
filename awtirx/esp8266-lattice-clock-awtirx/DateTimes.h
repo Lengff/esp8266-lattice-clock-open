@@ -2,6 +2,7 @@
 #define DATETIMES_H
 
 #include "EEPROMTool.h"
+#include "System.h"
 #include <DS3231.h>
 #include <HTU21D.h>
 #include <Wire.h>
@@ -28,6 +29,13 @@ static long currtimestamp = 0;
 class DateTimes
 {
 private:
+  bool h12Flag, pmFlag, century = false;
+
+  /**
+   * @brief 初始化DS3231
+   *
+   */
+  DS3231 ds3231;
   /**
    * @brief
    *
@@ -53,6 +61,16 @@ private:
   Dates dates;
 
 public:
+  /**
+   * @brief 温度
+   *
+   */
+  byte temperature = 0;
+  /**
+   * @brief 湿度
+   *
+   */
+  byte humidity = 0;
   /**
    * 构造函数
    */
