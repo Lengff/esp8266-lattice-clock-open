@@ -1,14 +1,19 @@
 #include "Main.h"
-// 这里加了一个点灯科技的代码支持，假如说你想用点灯科技，则可以取消注释掉下面这段代码
-// #include "BlinkerSupport.h"
-// 然后在step函数中取消注释掉那段initBlinker();和Blinker.run();代码即可
-// 关于这段的说明请参考：https://gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
+
+// 如果你要开启 光敏电阻调节亮度，则只需要把 0 改成 1 就可以了
+#define OPEN_LIGHT 0
+// 如果你要启用点灯科技的代码，则只需要将这里的 0 改成 1 就可以了
+#define USE_BLINKER 0
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 
-/**
- * 处理接受到的UDP数据
- */
+#ifndef USE_BLINKER
+// 这里加了一个点灯科技的代码支持，假如说你想用点灯科技，则可以取消注释掉下面这段代码
+关于这段的说明请参考：https : // gitee.com/lengff/esp8266-lattice-clock-open/tree/master/blinker
+#include "BlinkerSupport.h"
+#endif
+
+
 void handleUdpData()
 {
   Udpdata udpdata = udps.userLatticeLoop(functions.getCurrPower(), functions.getCurrMode(), LATTICE_CLOCK_VERSION); //
@@ -74,10 +79,13 @@ void showTimeCallback()
 {
   handleUdpData();
   touchLoop();
+
+#ifndef USE_BLINKER
   if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
   {
-    // Blinker.run();
+    Blinker.run();
   }
+#endif
 }
 
 /**
@@ -167,7 +175,7 @@ void setup()
   lattice.boot_animation();                                         // 显示开机动画
   Serial.begin(115200);                                             // 初始化串口波特率
   EEPROM.begin(4096);                                               //
-  WiFi.hostname("lattice-clock");                                   //设置ESP8266设备名
+  WiFi.hostname("lattice-clock");                                   // 设置ESP8266设备名
   initTouch();                                                      // 初始化按键信息
   wifis.connWifi();                                                 // 连接wifi
   udps.initudp();                                                   // 初始化UDP客户端
@@ -191,9 +199,16 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
+
+#ifndef OPEN_LIGHT
   lightLoop();
-  if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
+#endif
+
+#ifndef USE_BLINKER
+  // 确保wifi网络是可用的,不可用则忽略
+  if (WiFi.status() == WL_CONNECTED)
   {
-    // Blinker.run();
+    Blinker.run();
   }
+#endif
 }
