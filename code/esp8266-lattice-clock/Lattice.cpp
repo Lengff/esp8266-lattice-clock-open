@@ -62,14 +62,14 @@ void Lattice::initData()
 
 void Lattice::refreshLed()
 {
-  if (!latticeSetting.direction)
+  if (latticeSetting.direction)
   {
     // 正着显示
     for (int j = 0; j < rowLength; j++)
     {
       for (int i = 0; i < columnLength; i++)
       {
-        lc.setRow(i, j, data[columnLength-i-1][j]);
+        lc.setRow(i, j, data[i][j]);
       }
     }
   }
