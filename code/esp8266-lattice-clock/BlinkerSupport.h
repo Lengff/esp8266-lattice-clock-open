@@ -7,7 +7,7 @@
 #include "Main.h"
 #include <Blinker.h>
 
-char auth[] = "0b6921f916bd"; // 这里设置你自己的点灯秘钥
+char auth[] = ""; // 这里设置你自己的点灯秘钥
 
 // 新建组件对象
 BlinkerButton powerBtn("btn-power");         // 开关按键
