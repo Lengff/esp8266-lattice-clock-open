@@ -3,7 +3,7 @@
 // 如果你要开启 光敏电阻调节亮度，则只需要把 0 改成 1 就可以了
 #define OPEN_LIGHT 0
 // 如果你要启用点灯科技的代码，则只需要将这里的 0 改成 1 就可以了
-#define USE_BLINKER 1
+#define USE_BLINKER 0
 
 #define LATTICE_CLOCK_VERSION 9 // 点阵时钟代码版本号码
 

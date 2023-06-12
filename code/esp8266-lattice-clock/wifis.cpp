@@ -101,7 +101,7 @@ void Wifis::handleWifiList()
 
 void Wifis::initWebServer()
 {
-  WiFi.mode(WIFI_AP_STA);                                     // 设置模式为wifi热点模式
+  WiFi.mode(WIFI_AP);                                     // 设置模式为wifi热点模式
   WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0)); //初始化AP模式
   WiFi.softAP(AP_NAME, NULL, 1, 0, 4);                        //初始化AP模式
   server.on("/", HTTP_GET, handleIndex);                      //设置主页回调函数
@@ -111,6 +111,7 @@ void Wifis::initWebServer()
   server.begin();                                             //启动WebServer
   Serial.println("WebServer started!");
   dnsServer.start(53, "*", apIP);
+  Serial.println("判断是否是初始化热点出现的bug");
 }
 
 void Wifis::connWifi()
