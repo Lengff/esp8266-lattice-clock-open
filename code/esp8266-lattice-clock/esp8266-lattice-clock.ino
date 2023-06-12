@@ -192,7 +192,10 @@ void setup()
   systems.init_callback(showTimeCallback);
 
 #if USE_BLINKER
-  initBlinker();
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    initBlinker();
+  }
 #endif
 
 }
