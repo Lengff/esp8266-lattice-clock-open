@@ -87,38 +87,45 @@ void singleBClickHandler()
     {
         colorNums++;
     }
-
+    Serial.println(colorNums);
     switch (colorNums)
     {
     case 0:
+        Serial.println("Green");
         lattice.showColor = CRGB::Green;
         break;
     case 1:
-        lattice.showColor = CRGB::AliceBlue;
+        Serial.println("AliceBlue");
+        lattice.showColor = CRGB::Blue;
         break;
     case 2:
-        lattice.showColor = CRGB::Beige;
+        Serial.println("Beige");
+        lattice.showColor = CRGB::DarkRed;
         break;
     case 3:
-        lattice.showColor = CRGB::Brown;
+        Serial.println("Brown");
+        lattice.showColor = CRGB::Orange;
         break;
     case 4:
-        lattice.showColor = CRGB::DarkGray;
+        Serial.println("DarkGray");
+        lattice.showColor = CRGB::SeaGreen;
         break;
     case 5:
-        lattice.showColor = CRGB::DarkOrange;
+        Serial.println("DarkOrange");
+        lattice.showColor = CRGB::SkyBlue;
         break;
     case 6:
-        lattice.showColor = CRGB::DarkSeaGreen;
+        Serial.println("DarkSeaGreen");
+        lattice.showColor = CRGB::YellowGreen;
         break;
     case 7:
-        lattice.showColor = CRGB::FloralWhite;
+        lattice.showColor = CRGB::Red;
         break;
     case 8:
-        lattice.showColor = CRGB::Indigo;
+        lattice.showColor = CRGB::Maroon;
         break;
     case 9:
-        lattice.showColor = CRGB::LightSalmon;
+        lattice.showColor = CRGB::LightBlue;
         break;
     }
 }
@@ -326,6 +333,25 @@ void lightLoop()
 }
 
 /**
+ * 每天早上八点重置时间
+ *
+ */
+void resetTimeLoop()
+{
+    // 确定是连接wifi的状态，如果不是连接wifi的状态则不进行时间重置
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        Times time = datetimes.getTimes();
+        if (time.h == 8 && time.m == 0 && time.s == 0)
+        {
+            // 直接重启时钟用于校准时间
+            Serial.println("校准时间！");
+            ESP.restart(); // 重启系统
+        }
+    }
+}
+
+/**
  * @brief 重置时间
  * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
  * @param data
@@ -402,7 +428,6 @@ void showCountDown()
         displayData[i] = displayData[i] == 6 ? 1 : ++displayData[i];
     }
 }
-
 
 /**
  * @brief 显示日期

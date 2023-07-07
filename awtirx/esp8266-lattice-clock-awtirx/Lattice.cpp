@@ -8,6 +8,7 @@ void Lattice::init()
   latticeSetting.direction = EEPROMTool.loadDataOne(DIRECTION);   // 从eeprom中获取屏幕方向
   latticeSetting.isShutdown = false;                              // 默认是启用点阵屏幕
   latticeSetting.brightness = EEPROMTool.loadDataOne(BRIGHTNESS); // 从eeprom中获取亮度信息
+  showColor = CRGB::DarkRed;
   shutdown(latticeSetting.isShutdown);                            // 是否关闭点阵屏幕
   setBrightness(latticeSetting.brightness, true);                 // 将亮度设置为最低
   memcpy(latticeSetting.userData, noseticon, sizeof(noseticon));  // 初始化自定义数据
@@ -19,7 +20,7 @@ void Lattice::init()
 void Lattice::shutdown(bool down)
 {
   latticeSetting.isShutdown = down;
-  showColor = down ? CRGB::Black : CRGB::Green;
+  showColor = down ? CRGB::Black : CRGB::DarkRed;
 }
 
 void Lattice::setBrightness(uint8_t bright, bool save)

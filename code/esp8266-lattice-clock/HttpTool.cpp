@@ -20,18 +20,30 @@ void HttpTool::bilibiliFans()
     is_need_update_bilibili = false;
     return;
   }
-  espClient.begin(wifiClient, bilibiliFansApi + biliUid); // 这里做法欠妥，我用自己服务器做了一层代理，直接解析了UP的粉丝数
+  std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
+  client->setFingerprint(fingerprint);
+  client->setInsecure();
+  // 直接调用B站接口获取粉丝数量
+  espClient.begin(*client, bilibiliFansApi + biliUid);
   int httpCode = espClient.GET();
   Serial.println(httpCode);
   if (httpCode > 0)
   {
-    if (httpCode == HTTP_CODE_OK)
+    if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
     {
-      String nums = espClient.getString();
-      fans = strtol(nums.c_str(), NULL, 10);
+      String json = espClient.getString();
+      Serial.println(json);
+      DynamicJsonDocument doc(2048);
+      deserializeJson(doc, json);
+      // 获取bilibili粉丝数量
+      fans = doc["data"]["follower"];
       Serial.println(fans);
       is_need_update_bilibili = false;
     }
+  }
+  else
+  {
+    Serial.println("调用BIlibili的接口失败！");
   }
   espClient.end();
 }

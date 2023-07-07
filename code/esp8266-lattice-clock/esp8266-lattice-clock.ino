@@ -13,7 +13,6 @@
 #include "BlinkerSupport.h"
 #endif
 
-
 void handleUdpData()
 {
   Udpdata udpdata = udps.userLatticeLoop(functions.getCurrPower(), functions.getCurrMode(), LATTICE_CLOCK_VERSION); //
@@ -24,50 +23,50 @@ void handleUdpData()
   }
   switch (udpdata.te) // 判断UDP数据类型
   {
-    case 0:
-      resetTime(udpdata.data); // 重置时间
-      break;
-    case 1:
-      lattice.setBrightness(udpdata.data[0], true); // 设置亮度
-      break;
-    case 2:
-      functions.setPowerAndMode(udpdata.data[0], 0); // 切换功能
-      initStatus();
-      break;
-    case 3:
-      functions.setMode(udpdata.data[0]); // 切换功能模式
-      initStatus();
-      break;
-    case 4:
-      httptool.updateBilibiliFlag(); // 更新bilibili粉丝数量前,需要重置一下flag
-      subBili(udpdata.data);         // 订阅BIlibiliUID
-      initStatus();
-      break;
-    case 5:
-      lattice.shutdown(udpdata.data[0]); // 是否启用点阵屏幕
-      break;
-    case 6:
-      lattice.setDirection(udpdata.data[0]); // 切换显示方向
-      break;
-    case 7:
-      setUserData(udpdata.data); // 设置用户数据
-      break;
-    case 8:
-      lattice.latticeSetting.speed = udpdata.data[0]; // 设置动画速度
-      functions.setPower(CUSTOM);
-      break;
-    case 9:
-      otas.updateOta(udpdata.data[0]); // OTA 升级
-      break;
-    case 10:
-      setCountdown(udpdata.data); // 设置倒计时
-      initStatus();
-      break;
-    case 11:
-      setSleepTime(udpdata.data); // 设置睡眠时间
-      break;
-    default:
-      break;
+  case 0:
+    resetTime(udpdata.data); // 重置时间
+    break;
+  case 1:
+    lattice.setBrightness(udpdata.data[0], true); // 设置亮度
+    break;
+  case 2:
+    functions.setPowerAndMode(udpdata.data[0], 0); // 切换功能
+    initStatus();
+    break;
+  case 3:
+    functions.setMode(udpdata.data[0]); // 切换功能模式
+    initStatus();
+    break;
+  case 4:
+    httptool.updateBilibiliFlag(); // 更新bilibili粉丝数量前,需要重置一下flag
+    subBili(udpdata.data);         // 订阅BIlibiliUID
+    initStatus();
+    break;
+  case 5:
+    lattice.shutdown(udpdata.data[0]); // 是否启用点阵屏幕
+    break;
+  case 6:
+    lattice.setDirection(udpdata.data[0]); // 切换显示方向
+    break;
+  case 7:
+    setUserData(udpdata.data); // 设置用户数据
+    break;
+  case 8:
+    lattice.latticeSetting.speed = udpdata.data[0]; // 设置动画速度
+    functions.setPower(CUSTOM);
+    break;
+  case 9:
+    otas.updateOta(udpdata.data[0]); // OTA 升级
+    break;
+  case 10:
+    setCountdown(udpdata.data); // 设置倒计时
+    initStatus();
+    break;
+  case 11:
+    setSleepTime(udpdata.data); // 设置睡眠时间
+    break;
+  default:
+    break;
   }
 }
 
@@ -141,63 +140,58 @@ void handlePower()
 {
   switch (functions.getCurrPower()) // 显示数据模式
   {
-    case SHOW_TIME:
-      showTime(functions.getCurrMode()); // 显示时间
-      break;
-    case SHOW_DATE:
-      showDate(functions.getCurrMode()); // 显示日期
-      break;
-    case POWER2:
-      showTemperature(); // 显示温度
-      break;
-    case BILIFANS:
-      showBiliFans(); // 显示bilibili粉丝数量
-      break;
-    case CUSTOM:
-      showUserData(functions.getCurrMode()); // 显示用户自定义的数据
-      break;
-    case COUNTDOWN:
-      showCountDown(); // 显示倒计时
-      break;
-    case RESET:
-      System::reset_system(); // 重置系统
-      break;
-    case RESETTIME:
-      resetTime(NULL); // 重置时间,这里是随便传的一个参数,不想重新声明参数
-      break;
-    default:
-      break; // 默认不做任何处理
+  case SHOW_TIME:
+    showTime(functions.getCurrMode()); // 显示时间
+    break;
+  case SHOW_DATE:
+    showDate(functions.getCurrMode()); // 显示日期
+    break;
+  case POWER2:
+    showTemperature(); // 显示温度
+    break;
+  case BILIFANS:
+    showBiliFans(); // 显示bilibili粉丝数量
+    break;
+  case CUSTOM:
+    showUserData(functions.getCurrMode()); // 显示用户自定义的数据
+    break;
+  case COUNTDOWN:
+    showCountDown(); // 显示倒计时
+    break;
+  case RESET:
+    System::reset_system(); // 重置系统
+    break;
+  case RESETTIME:
+    resetTime(NULL); // 重置时间,这里是随便传的一个参数,不想重新声明参数
+    break;
+  default:
+    break; // 默认不做任何处理
   }
 }
 
 void setup()
 {
-  lattice.boot_animation();                                         // 显示开机动画
-  Serial.begin(115200);                                             // 初始化串口波特率
-  EEPROM.begin(4096);                                               //
-  WiFi.hostname("lattice-clock");                                   // 设置ESP8266设备名
-  initTouch();                                                      // 初始化按键信息
-  wifis.connWifi();                                                 // 连接wifi
-  udps.initudp();                                                   // 初始化UDP客户端
-  httptoolticker.attach(5 * 6 * 1000, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
-  timestampticker.attach(1, DateTimes::timestampAdd);               // 每一秒叠加一次秒数
-  if (!wifis.isApMode())                                            // 如果wifi模式为连接wifi的模式则联网矫正时间
-  { //
-    resetTime(NULL);                                                // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
-    httptool.updateBilibiliFlag();                                  // 更新bilibili粉丝数量前,需要重置一下flag
-    httptool.bilibiliFans();                                        // 刷新bilibili粉丝数量
-    // initBlinker();
+  lattice.boot_animation();                                   // 显示开机动画
+  Serial.begin(115200);                                       // 初始化串口波特率
+  EEPROM.begin(4096);                                         //
+  WiFi.hostname("lattice-clock");                             // 设置ESP8266设备名
+  initTouch();                                                // 初始化按键信息
+  wifis.connWifi();                                           // 连接wifi
+  udps.initudp();                                             // 初始化UDP客户端
+  httptoolticker.attach(5 * 60, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
+  timestampticker.attach(1, DateTimes::timestampAdd);         // 每一秒叠加一次秒数
+  if (!wifis.isApMode())                                      // 如果wifi模式为连接wifi的模式则联网矫正时间
+  {                                                           //
+    resetTime(NULL);                                          // 每次初始化的时候都校准一下时间,这里是随便传的一个参数,不想重新声明参数
+    httptool.updateBilibiliFlag();                            // 更新bilibili粉丝数量前,需要重置一下flag
+    httptool.bilibiliFans();                                  // 刷新bilibili粉丝数量
   }
   initSleepTime(); // 初始化休眠时间
   systems.init_callback(showTimeCallback);
 
 #if USE_BLINKER
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    initBlinker();
-  }
+  initBlinker();
 #endif
-
 }
 
 void loop()
@@ -207,6 +201,7 @@ void loop()
   touchLoop();
   handlePower();
   sleepTimeLoop();
+  resetTimeLoop();
 
 #if OPEN_LIGHT
   lightLoop();

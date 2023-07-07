@@ -2,8 +2,8 @@
 
 DateTimes::DateTimes()
 {
-  Wire.begin();
-  dht11 = SimpleDHT11(16);
+  Wire.begin(D1,D2);
+  // dht11 = SimpleDHT11(16);
 }
 
 /**

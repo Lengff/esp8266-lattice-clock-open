@@ -273,6 +273,25 @@ void lightLoop()
 }
 
 /**
+ * 每天早上八点重置时间
+ *
+ */
+void resetTimeLoop()
+{
+    // 确定是连接wifi的状态，如果不是连接wifi的状态则不进行时间重置
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        Times time = datetimes.getTimes();
+        if (time.h == 8 && time.m == 0 && time.s == 0)
+        {
+            // 直接重启时钟用于校准时间
+            Serial.println("校准时间！");
+            ESP.restart(); // 重启系统
+        }
+    }
+}
+
+/**
  * @brief 重置时间
  * 重置时间这里有两种方式，一种就是用NTP校准时间，还有一种就是设备没有连接wifi，直接用手机发来的时间戳进行校准时间
  * @param data

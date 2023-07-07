@@ -167,11 +167,11 @@ void setup()
   lattice.boot_animation();                                         // 显示开机动画
   Serial.begin(115200);                                             // 初始化串口波特率
   EEPROM.begin(4096);                                               //
-  WiFi.hostname("lattice-clock");                                   //设置ESP8266设备名
+  WiFi.hostname("lattice-clock");                                   // 设置ESP8266设备名
   initTouch();                                                      // 初始化按键信息
   wifis.connWifi();                                                 // 连接wifi
   udps.initudp();                                                   // 初始化UDP客户端
-  httptoolticker.attach(5 * 6 * 1000, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
+  httptoolticker.attach(60, httptool.updateBilibiliFlag); // 每五分分钟更新一次更新bilibili粉丝flag
   timestampticker.attach(1, DateTimes::timestampAdd);               // 每一秒叠加一次秒数
   if (!wifis.isApMode())                                            // 如果wifi模式为连接wifi的模式则联网矫正时间
   {                                                                 //
@@ -192,6 +192,7 @@ void loop()
   handlePower();
   sleepTimeLoop();
   lightLoop();
+  resetTimeLoop();
   if (WiFi.status() == WL_CONNECTED) // 确保wifi网络是可用的,不可用则忽略
   {
     // Blinker.run();
